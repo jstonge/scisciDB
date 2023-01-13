@@ -1,0 +1,8 @@
+324124 metadata_1950_simple_has_abstract.jsonl
+954262 metadata_1960_simple_has_abstract.jsonl
+2538151 metadata_1970_simple_has_abstract.jsonl
+5003171 metadata_1980_simple_has_abstract.jsonl
+9374378 metadata_1990_simple_has_abstract.jsonl
+21879509 metadata_2000_simple_has_abstract.jsonl
+34971580 metadata_2010_simple_has_abstract.jsonl
+647992 metadata_2020_simple_has_abstract.jsonl

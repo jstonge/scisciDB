@@ -20,7 +20,7 @@ def _s2search_via_api(q:str, fOS:str, yr:int, off:int) -> None:
 
     Note
     ====
-      - The output file is of the form: DIR / raw_dat / fOS / q / {yr}_{off}.json
+      - The output file is of the form: DIR / s2search_data / fOS / q / {yr}_{off}.json
       - The overall limit seems to be 10K articles. If we fine grained our query by year,
         the only field that suffers from the limit for the `computational` is physics.
     """
@@ -29,7 +29,7 @@ def _s2search_via_api(q:str, fOS:str, yr:int, off:int) -> None:
     fields = "url,abstract,authors,title,venue,journal,year,citationCount,influentialCitationCount,referenceCount,fieldsOfStudy,s2FieldsOfStudy"
     url = f"{base_url}?year={yr}&fieldsOfStudy={fOS}&query={q}&fields={fields}&offset={off}&limit=100"
     
-    OUTPUT_DIR_FIELD = DIR / "raw_dat" / fOS
+    OUTPUT_DIR_FIELD = DIR / "s2search_data" / fOS
     OUTPUT_DIR_QUERY = OUTPUT_DIR_FIELD / q
     
     if OUTPUT_DIR_FIELD.exists() == False: OUTPUT_DIR_FIELD.mkdir()
@@ -84,7 +84,7 @@ def make_slow_queries(q:str, fields:list) -> None:
         sleep(60*5)
 
 def raw2parquet(q:str, fOS:str) -> None:  
-    fnames = list(DIR.glob(f"raw_dat/{fOS}/{q}/*json"))
+    fnames = list(DIR.glob(f"s2search_data/{fOS}/{q}/*json"))
     out = []
     for fname in fnames:
         print(fname)
@@ -92,7 +92,7 @@ def raw2parquet(q:str, fOS:str) -> None:
             d = json.load(f)
             for line in d:
                 out.append(line)
-    return pd.DataFrame(out).to_parquet(DAT_DIR / f"{q}-{fOS}.pqt")
+    return pd.DataFrame(out).to_parquet(SPECTER_DIR / f"{q}-{fOS}.pqt")
 
 def main():
     # this is done interactively, really.
@@ -106,8 +106,9 @@ def main():
 if __name__ == '__main__':
 
     DIR = Path()
-    DAT_DIR = DIR / 'raw_dat'      
+    DAT_DIR = DIR / 's2search_data'      
     DIR_METADATA_BY_DECADE = ".." / DIR / 'metadata_by_decade_all'
+    SPECTER_DIR = DIR / '05_query_specter_api'
 
     s2FOS_stem = set(["Chemistry", "Biology", "Materials Science", "Computer Science", "Physics","Geology", "Mathematics", "Engineering", "Environmental Science"])
     s2FOS_soc_sci = set(["Psychology", "Linguistics", "Political Science","Economics", "Philosophy", "Art","History","Geography","Sociology"])
@@ -116,8 +117,8 @@ if __name__ == '__main__':
     s2FOS = s2FOS_stem | s2FOS_soc_sci | s2FOS_misc
 
     fOS_done = set(
-        [re.sub("raw_dat/", "", str(_)) for _ in DAT_DIR.glob("*") 
-        if bool(re.match("raw_dat/computational*", str(_))) == False]
+        [re.sub("05_query_specter_api/", "", str(_)) for _ in SPECTER_DIR.glob("*") 
+        if bool(re.match("05_query_specter_api/computational*", str(_))) == False]
         )
 
     s2FOS = s2FOS - fOS_done
@@ -141,7 +142,7 @@ if __name__ == '__main__':
 # Still, 1000s missing hits is already better than 20K over.
 
 # raw2parquet("digital humanities", "Philosophy")
-# testDH = pd.read_parquet("raw_dat/digital humanities-Philosophy.pqt")
+# testDH = pd.read_parquet("s2search_data/digital humanities-Philosophy.pqt")
 
 # testDH["s2Field"] = flatten_s2field(testDH)
 

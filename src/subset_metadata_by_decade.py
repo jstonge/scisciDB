@@ -1,31 +1,22 @@
-# Description: This script subsets bucketized metadata files in `metadata_by_decade/` to 
-#              get only papers with abstract or pdf.
-# Author: Jonathan St-Onge
+"""
+This script subsets bucketized metadata files in `metadata_by_decade/` to 
+get only papers with abstract or pdf.
+"""
 
 import argparse
+import pathlib
 import re
-from pathlib import Path
 
 from jsonlines import jsonlines
 from tqdm import tqdm
 
 
 def main():
-    """
-    Extract papers from metadata_by_decade_all with either the pdf or abstract.
-    
-    We do a decade at a time.
-    """
-    S2ORC_DIR = Path()
-    DIR_METADATA   = S2ORC_DIR / "output" / "metadata_by_decade_all"
-
-    # decade = 1950
-    # parse = 'abstract'
-    fname = [_ for _ in DIR_METADATA.glob("*.jsonl")
+    fname = [_ for _ in args.input_dir.glob("*.jsonl")
              if re.search(f"metadata_{args.decade}_all.jsonl", str(_))][0]
 
-    fname_short = re.sub(".jsonl", "", str(fname).split("/")[-1])
-    OUT = DIR_METADATA / f'{fname_short}_simple_has_{args.parse}.jsonl'
+    fname_short = re.sub("_all.jsonl", "", str(fname).split("/")[-1])
+    output_file = args.input_dir / f'{fname_short}_has_{args.parse}.jsonl'
     
     with jsonlines.open(fname) as reader:
         
@@ -47,7 +38,7 @@ def main():
                             nb_citations_from_s2orc_papers = None
                             nb_refs_from_s2orc_papers = None
                         
-                        with jsonlines.open(OUT, 'a') as writer:
+                        with jsonlines.open(output_file, 'a') as writer:
                             writer.write({
                             'paper_id': line['paper_id'],
                             'title': line['title'],
@@ -67,7 +58,7 @@ def main():
 
                     if line.get('year') is not None and line.get('mag_field_of_study') is not None:
                         
-                        with jsonlines.open(OUT, 'a') as writer:
+                        with jsonlines.open(output_file, 'a') as writer:
                             writer.write({
                                 'paper_id': line['paper_id'],
                                 'title': line['title'],
@@ -82,8 +73,8 @@ def main():
 
 
 if __name__ == '__main__':
-
     parser = argparse.ArgumentParser()
+    parser.add_argument("--input_dir", type=pathlib.Path)
     parser.add_argument("--decade", type=int)
     parser.add_argument('--parse') 
     args = parser.parse_args()

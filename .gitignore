@@ -1,7 +1,6 @@
 20200705v1/
 etc/
 
-
 etc/metadata_by_decade_and_fields.csv.gz
 
 src/s2_fos
@@ -18,3 +17,6 @@ s2search/
 05_query_specter_api/*pqt
 
 src/get_s2fos_lookup_profiling/*
+
+data/
+src/profiling/*

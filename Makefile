@@ -1,40 +1,61 @@
-.PHONY: get_data_from_s2orc uncompress_everything sort_and_bucketize subset_abstract create_s2fos_lookup augment_s2orc_with_s2fos
+.PHONY: clean 20200705v1 data/metadata_by_decade parse_abstract data/s2FOS_lookup augment_s2orc_with_s2fos data/s2search_data test 
 .SUFFIXES:
 
-get_data_from_s2orc:
+raw_metadata_files := $(wildcard 20200705v1/full/metadata/*.jsonl)
+metadata_by_decade_dir = "data/metadata_by_decade"
+s2fields = 'Agricultural and Food Sciences' 'Materials Science'
+
+clean:
+	rm -rf data/metadata_by_decade data/s2FOS_lookup
+
+20200705v1:
 	# Update with personal script sent by Kyle Lo 
 	sh presign_urls_dl_s2orc_20200705v1_full_urls_expires_20220907.sh
+	gunzip 20200705v1/full/metadata/* && gunzip 20200705v1/full/pdf_parses/
 
-uncompress_everything: 20200705v1
-	gunzip full/metadata/* && \
-	gunzip full/pdf_parses/*
+data/metadata_by_decade:
+	for file in $(raw_metadata_files); do \
+		python src/bucketize.py --input_file $$file --output_dir $@; \
+	done
 
-sort_and_bucketize: output/metadata_by_decade_all/
-	python bucketized_metadata.py
+parse_abstract: data/metadata_by_decade/*all.jsonl
+	for i in $$(seq 1950 10 2020); do \
+		python src/subset_metadata_by_decade.py --input_dir $(metadata_by_decade_dir) \
+												--decade $$i \
+												--parse abstract; \
+	done
 
-subset_abstract: output/metadata_by_decade_all/metadata_*_all_simple_has_abstract.jsonl
-	for i in $(seq 1950 10 2020); do python subset_metadata_by_decade.py --decade $i --parse abstract; done
-
-create_s2fos_lookup: output/s2fos_lookup
-	# Run on the Vacc
-	for file in $(ls get_s2fos_lookup_vacc/*.sh); do sbatch $file; done;
+data/s2FOS_lookup:
+	cd src && \
+	python get_s2fos_lookup2vac.py --input_path ../data/metadata_by_decade --batch_size 75000 --destfile tmp && \
+	for file in $$(ls tmp/*.sh); do sh $$file; done; 
+	rm -rf src/tmp
 
 augment_s2orc_with_s2fos:
-	python augment_s2fos.py --decade 1950 --lookup 'metadata_195*'
-	python augment_s2fos.py --decade 1960 --lookup 'metadata_196*'
-	python augment_s2fos.py --decade 1970 --lookup 'metadata_197*'
-	python augment_s2fos.py --decade 1980 --lookup 'metadata_198*'
-	python augment_s2fos.py --decade 1990 --lookup 'metadata_199*'
-	python augment_s2fos.py --decade 2000 --lookup 'metadata_200*'
-	python augment_s2fos.py --decade 2010 --lookup 'metadata_201*'
-	python augment_s2fos.py --decade 2020 --lookup 'metadata_202*'
+	for file in $$(ls data/metadata_by_decade/*_all.jsonl); do \
+		python src/augment_s2fos.py --input_file $$file 
+									--lookup_dir data/s2FOS_lookup; \
+	done
 
-query_s2searchAPI: output/s2search_data/*
-	# done interactively with `s2searchAPI.py`
+# Quantifying computational works ------------------------------------------------------------------------
 
-query_specterAPI: output/specterAPI
-	# Run on the Vacc
-	sh specterAPI_vacc.sh
+data/s2search_data:
+	for fOS in $(s2fields); do \
+		python src/query_s2searchAPI/s2searchAPI.py -q computational --fOS $$fOS --output_dir $@; \
+		sleep 300; \
+	done
+
+
+data/specterAPI:
+	for file in $$(ls data/s2search_data/*.pqt); do \
+		python src/query_specterAPI/specterAPI2vacc.py --fname $$file; \
+		./tmp.sh; \
+	done 
+	rm src/query_specterAPI/tmp.sh
+
+# query_specterAPI: output/specterAPI
+# 	# Run on the Vacc
+# 	sh specterAPI_vacc.sh
 
  
 	

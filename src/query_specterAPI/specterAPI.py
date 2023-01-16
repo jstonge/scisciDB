@@ -1,4 +1,12 @@
+"""
+Query specterAPI from semantic scholar for papers in a selected parquet file. 
+
+The script will look if the file already exists, and if so, only ask for papers
+not already in it.
+"""
+
 import argparse
+import pathlib
 import re
 from pathlib import Path
 from time import sleep
@@ -42,11 +50,11 @@ def _specter_via_api(paperId: str, fout: Path) -> None:
 
 
 def main():
-    paperIds = set(pd.read_parquet(args.fname).paperId)
-    field = re.sub(".pqt", "", args.fname)
+    paperIds = set(pd.read_parquet(args.input_path).paperId)
+    field = re.sub(".pqt", "", args.input_path.split("/")[-1])
     print(f"Doing {field} ({len(paperIds)} papers)")
 
-    outname = OUTPUT_DIR_FIELD / f"{field}.json"
+    outname = args.output_dir / f"{field}.json"
 
     already_done = []
     if outname.exists():
@@ -73,7 +81,8 @@ if __name__ == "__main__":
     OUTPUT_DIR_FIELD = CURRENT_DIR / "output" / "specter"
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--fname")
+    parser.add_argument("--input_path", help="Parquet file produced in query_s2searchAPI")
+    parser.add_argument("--output_dir", type=pathlib.Path)
     args = parser.parse_args()
 
     main()

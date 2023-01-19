@@ -28,7 +28,7 @@ def main():
             f.write(f"#SBATCH --output={args.destfile}/res_{i}.out \n")
             f.write(f"python get_s2fos_lookup.py --input_path={str(fname)} \
                                                  --batch_size={args.batch_size} \
-                                                 --destfile ../data/s2FOS_lookup") 
+                                                 --destfile ../data/s2fos_lookup") 
   
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

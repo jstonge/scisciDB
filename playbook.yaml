@@ -1,0 +1,41 @@
+---
+- name: Data pipeline for s2orc
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: Bucketize raw files by decade
+      tags: bucketize
+      shell: python src/bucketize.py --input_file 20200705v1/full/metadata/metadata_0.jsonl --output_dir data/metadata_by_decade_all
+      register: command_output
+    - name: Parse abstract from metadata files
+      tags: parse_abstract
+      shell: for dec in $(seq 1950 10 2020); do \
+               python src/subset_metadata_by_decade.py --input_dir 'data/metadata_by_decade_all'  \
+                                   --decade $dec \
+                                   --parse abstract; \
+             done
+      register: command_output
+    - name: Create s2fos lookups
+      tags: s2fos_lookups
+      shell: cd src && \
+             python get_s2fos_lookup2vac.py --input_path ../data/metadata_by_decade_all --batch_size 75000 --destfile tmp && \
+             for file in $(ls tmp/*.sh); do sh $file; done; 
+             rm -rf src/tmp
+      register: command_output
+    - name: Augment s2orc with s2fos classification
+      tags: augment_s2orc_with_s2fos
+      shell: for file in $(ls data/metadata_by_decade_all/*_all.jsonl); do \
+             python src/augment_s2fos.py --input_file $file --lookup_dir data/s2fos_lookup; \
+             done;
+    - name: Run s2search API
+      tags: run_s2search_data
+      shell: for fOS in $(s2fields_todo); do \
+             python src/query_s2searchAPI/s2searchAPI.py -q computational --fOS $$fOS --output_dir 'data/s2search_data'; \
+             done;
+    - name: Run specter API
+      tags: run_specterAPI
+      shell: for fOS in $(ls data/s2search_data/*.pqt); do \
+             python src/query_specterAPI/specterAPI2vacc.py --fname $file; \
+             sbatch tmp.sh \
+             done;
+

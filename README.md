@@ -16,20 +16,25 @@ To see available tasks, you can run `ansible-playbook playbook.yaml --list-tasks
 ```zsh
 playbook: playbook.yaml
 
-  play #1 (localhost): From bucketing raw data to augmenting it with `s2fos` classif	TAGS: []
+  play #1 (localhost): From bucketing raw data to augmenting it with `s2fos` classif    TAGS: []
     tasks:
-      Bucketize raw files by decade	TAGS: [bucketize]
-      Parse abstract from metadata files	TAGS: [parse_abstract]
-      Create s2fos lookups	TAGS: [s2fos_lookups]
-      Augment s2orc with s2fos classification	TAGS: [augment_s2orc_with_s2fos]
+      Bucketize raw files by decade     TAGS: [bucketize]
+      Parse abstract from metadata files        TAGS: [parse_abstract]
+      Create s2fos lookups      TAGS: [s2fos_lookups]
+      Augment s2orc with s2fos classification   TAGS: [augment_s2orc_with_s2fos]
 
-  play #2 (localhost): Querying `s2search` API based on keywords, then the `specter` API for their embeddings.	TAGS: []
+  play #2 (localhost): Querying `s2search` API based on keywords, then the `specter` API for their embeddings.  TAGS: []
     tasks:
-      Run s2search API	TAGS: [run_s2search_data]
-      Run specter API	TAGS: [run_specterAPI]
+      Run s2search API  TAGS: [run_s2search_data]
+      Run specter API   TAGS: [run_specterAPI]
+
+  play #3 (localhost): Projecting SPECTER embeddings into lower dimension and then clustering them.     TAGS: []
+    tasks:
+      Wrangle specterAPI data   TAGS: [wrangle_specter]
+      Embeddings to 'topics'    TAGS: [top2vec]
 
 ```
-Note that there are really 2 plays, one for wrangling data from the `s2orc` databse, and the other to query `s2search` database. The `s2orc` database was needed to have the yearly total number of documents in a field. But we needed the classification from `s2search` to make that happen. Now that we have the number of documents that have, say, the `computational` keyword with the total number of documents, we can normalize frequencies.
+Note that there are really 3 plays, one for wrangling data from the `s2orc` databse, query `s2search` database, and the last to perform SPECTER embeddings. The `s2orc` database was needed to have the yearly total number of documents in a field. But we needed the classification from `s2search` to make that happen. Now that we have the number of documents that have, say, the `computational` keyword with the total number of documents, we can normalize frequencies.
 
 #### Notes:
 

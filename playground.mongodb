@@ -1,0 +1,59 @@
+// How to get started with mongoDB using `mongosh`. 
+//
+// I currently use the vscode plug-in to interact with mongoDB. 
+// See https://code.visualstudio.com/docs/azure/mongodb.
+// I like it b/c it is a middle between mongoDB Compass and the commandline.
+//
+// Key refs:
+//  - `install mongosh:` https://www.mongodb.com/docs/mongodb-shell/install/
+//  - `data modeling:` https://www.mongodb.com/docs/manual/core/data-modeling-introduction/
+//  - `indexes`: 
+//     - https://www.mongodb.com/basics/mongodb-index
+//     - https://www.mongodb.com/docs/manual/indexes/
+//  - `best practices:`
+//     - https://www.mongodb.com/basics/best-practices
+
+
+// Connect to papersDB
+use('papersDB');
+
+// Looking at collections within our DB
+
+show collections;
+
+
+// `snippet` is a collections of snippets that can be very useful, e.g. 
+// snippet install analyze-schema (https://github.com/mongodb-labs/mongosh-snippets)
+// Analyze schema. Takes a while, but gives you a nice summary of the schema.
+
+schema(db.pdf_parses);
+
+// find papers based on `paper_id`
+
+db.pdf_parses.findOne({ paper_ID: "77497072"});
+
+
+// Query papers with `body_text`
+
+db.pdf_parses.findOne({ 
+    body_text: { 
+        $gt: true, $type: 'array', $ne: [] 
+        }
+    })
+
+
+// Embed one collection into a second collection 
+// not sure it is working yet, this is a chatgpt answer
+
+db.collection1.update({name: "John Doe"}, {$set: {address: db.collection2.findOne({address: "123 Main St"})}})
+
+
+// Find duplicated rows (not sure it is working yet)
+
+// const aggregation = [
+//     {"$group" : { "_id": "$paper_id", "count": { "$sum": 1 } } },
+//     {"$match": {"_id" :{ "$ne" : null } , "count" : {"$gt": 1} } }, 
+//     {"$project": {"paper_id" : "$_id", "_id" : 0} }
+// ]
+
+// db.pdf_parses.aggregate(aggregation);

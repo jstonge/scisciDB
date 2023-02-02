@@ -3,6 +3,7 @@ etc/
 
 etc/metadata_by_decade_and_fields.csv.gz
 
+src/tmp/
 src/s2_fos
 
 output/metadata_by_decade_all/

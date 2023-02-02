@@ -21,3 +21,4 @@ src/get_s2fos_lookup_profiling/*
 
 data/
 src/profiling/*
+umap_embedding_2NCOMP.parquet

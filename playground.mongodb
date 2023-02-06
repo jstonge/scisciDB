@@ -9,6 +9,7 @@
 //  - `data modeling:` https://www.mongodb.com/docs/manual/core/data-modeling-introduction/
 //  - `operators`: https://www.mongodb.com/docs/manual/reference/operator/query/
 //  - `Monitoring DB`: https://www.percona.com/blog/monitoring-mongodb-collection-stats-with-percona-monitoring-and-management/
+//  - `Update documents`: https://www.mongodb.com/docs/mongodb-shell/crud/update/
 //  - `Queries`:
 //     - https://www.mongodb.com/docs/manual/tutorial/query-array-of-documents/
 //  - `indexes`: 
@@ -16,6 +17,7 @@
 //     - https://www.mongodb.com/docs/manual/indexes/
 //     - https://www.percona.com/blog/2018/09/04/mongodb-index-usage-and-mongodb-explain-part-1/
 //     - https://www.percona.com/blog/2018/09/06/mongodb-investigate-queries-with-explain-index-usage-part-2/
+//     - https://www.bmc.com/blogs/mongodb-indexes/
 //  - `best practices:`
 //     - https://www.mongodb.com/basics/best-practices
 
@@ -117,7 +119,7 @@ db.metadata.find( { title : "Scale-free networks are rare", year : 2018 } )
 db.metadata.find( { year : { $gt : 2020} } )
 db.metadata.find().sort( { year: -1} ).limit(10)
 
-// Create index based on authors (Multikey indexes)
+// Create index based on authors (Multikey indexes; Not great)
 
 db.metadata.createIndex( { authors: 1 } )
 db.metadata.find( { authors.last: "Clauset" } )
@@ -131,6 +133,16 @@ db.metadata.createIndex(
 )
 
 db.metadata.find( { paper_id: "77490322", year: { $gt: 2018}, body_text: { $gt: true, $type: 'array', $ne: []} } )
+
+// Create index based on year (asc) and bounded by 1950-60
+
+exp.find({"year": {$gte: 1950, $lte: 1960}, "paper_id": "77490322"}).limit(1) // executionTimeMillis: 360429; totalKeysExamined: 2024098
+db.metadata.createIndex({year:1}, { partialFilterExpression: { year : { $gte: 1950, $lte: 1960 } } });
+exp.find({"year": {$gte: 1950, $lte: 1960}, "paper_id": "77490322"}).limit(1) // executionTimeMillis: 68676; totalKeysExamined: 406162
+
+// ---------------------------- UPDATING DOCUMENTS ------------------------------ //
+
+
 
 
 // -------------------------- Examples using functions -------------------------- //

@@ -1,15 +1,14 @@
-20200705v1/
 etc/
 
 etc/metadata_by_decade_and_fields.csv.gz
 
-src/tmp/
-src/s2_fos
+etc/old/src/tmp/
+etc/old/src/s2_fos
 
 output/metadata_by_decade_all/
 output/specterAPI
 
-s2fos_lookup/
+etc/old/s2fos_lookup/
 
 s2search_data/
 s2search/
@@ -22,3 +21,20 @@ src/get_s2fos_lookup_profiling/*
 data/
 src/profiling/*
 umap_embedding_2NCOMP.parquet
+
+openalex-snapshot/data/authors
+openalex-snapshot/data/concepts
+openalex-snapshot/data/institutions
+openalex-snapshot/data/merged_ids
+openalex-snapshot/data/venues
+openalex-snapshot/data/works
+
+20230131v1/abstracts/
+20230131v1/authors/
+20230131v1/citations/
+20230131v1/embeddings/
+20230131v1/papers/
+20230131v1/paper-ids/
+20230131v1/publication-venues/
+20230131v1/s2orc/
+20230131v1/tldrs/

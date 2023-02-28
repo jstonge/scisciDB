@@ -38,3 +38,4 @@ openalex-snapshot/data/works
 20230131v1/publication-venues/
 20230131v1/s2orc/
 20230131v1/tldrs/
+__pycache__/

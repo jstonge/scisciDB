@@ -14,6 +14,7 @@ from creds import s2orc_token
 
 if __name__ == "__main__":
     root_dir = Path()
+    corpus_dir = root_dir / '20230131v1'
 
     # corpus = 'citations'
     corpus = sys.argv[1]
@@ -26,11 +27,11 @@ if __name__ == "__main__":
     
     # if still a gz after trying to unzip it, with assume the download did not work 
     done_short_url = set([str(_).split("/")[-1]+".gz" 
-                          for _ in root_dir.joinpath(corpus).glob("20230203*") 
+                          for _ in corpus_dir.joinpath(corpus).glob("20230203*") 
                           if str(_).endswith('gz') == False])
 
     df = pd.DataFrame({"url":links, "short_url":short_link})
     df = df[~df.short_url.isin(done_short_url)]
-    output_file = root_dir / corpus / f"2023-01-31_{corpus}.csv"
+    output_file = corpus_dir  / corpus / f"2023-01-31_{corpus}.csv"
     output_file.unlink(missing_ok=True)
     df.to_csv(output_file, index=False, header=False)

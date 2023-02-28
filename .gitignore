@@ -38,4 +38,8 @@ openalex-snapshot/data/works
 20230131v1/publication-venues/
 20230131v1/s2orc/
 20230131v1/tldrs/
+
 __pycache__/
+data_statements_to_lab.csv
+data_statements_to_embed.jsonl
+20230131v1/sem_scholar_dataset.json

@@ -2,25 +2,10 @@
 Update mongoDB or openalex
 """
 import argparse
-import gzip
-from pathlib import Path
-from typing import Dict, List
-
 from jsonlines import jsonlines
-from tqdm import tqdm
-
+from pathlib import Path
 from creds import client
-
-
-def read_jsonl_gz(filename) -> List[Dict]:
-    data = []
-    with gzip.open(filename, 'rb') as fp:
-        j_reader = jsonlines.Reader(fp)
-
-        for obj in j_reader:
-            data.append(obj)
-
-    return data
+from tqdm import tqdm
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -32,10 +17,10 @@ if __name__ == "__main__":
     
     ROOT_DIR = Path()
     # for now we hardcode the date
-    SOURCE_DIR = ROOT_DIR / '20230131v1' if args.source == 's2' else ROOT_DIR / 'openalex-snapshot' / 'data'
-    # SOURCE_DIR = ROOT_DIR / 'openalex-snapshot' / 'data'
-    CORPUS_DIR = SOURCE_DIR / args.corpus
-    print(f"Doing corpus {args.corpus} in {args.source}")
+    # source, corpus = 'oa', 'authors'
+    SOURCE_DIR = ROOT_DIR / '20230131v1' if args.source == 's2' else ROOT_DIR / 'openalex-snapshot'
+    CORPUS_DIR = SOURCE_DIR / 'data' / args.corpus
+
     assert CORPUS_DIR.exists(), "Corpus folder doesn't exist. Maybe you are in the wrong directory?"
 
     db = client["papersDB"]
@@ -43,21 +28,29 @@ if __name__ == "__main__":
     # corpus = 'authors'
     if args.source == 's2':
         files = list(CORPUS_DIR.glob("20230203_*"))
-        for file in tqdm(files):
+        for i, file in enumerate(files):
             if str(file).endswith("gz") == False:
+                print(f"{i} / {len(files)}")
                 dat = []
                 with jsonlines.open(file) as f:
-                    for obj in f:
+                    for obj in tqdm(f):
                         dat.append(obj)
         db[args.corpus].insert_many(dat)
     
     else:
         folders = list(CORPUS_DIR.glob("*"))
-        for folder in tqdm(folders):
-            for file in folder.glob("*gz"):
-                dat = read_jsonl_gz(file)
-                db[args.corpus+'_oa'].insert_many(dat)
-
+        
+        for i,folder in enumerate(folders):
+            print(f"{i} / {len(folders)}")
+            
+            files = list(folder.glob("*"))
+            for i, file in enumerate(files):
+                print(f"{i} / {len(files)}")
+                data = []
+                with jsonlines.open(file) as f:
+                    for obj in tqdm(f):
+                        data.append(obj)
+                db[args.corpus+'_oa'].insert_many(data)
 
 
 # LOOKUP_DIR = ROOT_DIR / 's2FOS_lookup'

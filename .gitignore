@@ -43,3 +43,6 @@ __pycache__/
 data_statements_to_lab.csv
 data_statements_to_embed.jsonl
 20230131v1/sem_scholar_dataset.json
+
+node_modules/
+package*

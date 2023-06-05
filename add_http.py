@@ -34,4 +34,5 @@ def main():
     time_taken = (time.time() - start_time)
     print(f"Process finished {time_taken / 60} mins")
 
-main()
+if __name__ == "__main__":
+    main()

@@ -101,9 +101,67 @@ def do_mag_with_no_doi(year):
         )
     )
 
+def do_arxiv(year):
+    only_keep_existing_matches = {"$match": {"matches": {"$ne": []}}}
+
+    s2orc_filter = {
+        "$match": {
+            "year": year,
+            "s2fieldsofstudy.category": "Biology",
+            "externalids.arxiv": {"$type": "string"},
+            "externalids.MAG": {"$type": None},
+            "doi": {"$type": None},
+        }
+    }
+
+    oa_filter_pipeline = {
+        "$match": {
+            "publication_year": year,
+            "concepts.display_name": "Biology",
+            "$expr": {"$eq": ["$$s2orc_arxiv", "$ids.arxiv"]},
+        }
+    }
+
+    works_s2orc2oa_lookup_concise = {
+        "$lookup": {
+            "from": "works_oa",
+            "localField": "externalids.MAG",
+            "foreignField": "mag",
+            "let": {"s2orc_mag": "$externalids.MAG"},
+            "pipeline": [oa_filter_pipeline],
+            "as": "matches",
+        }
+    }
+
+    return list(
+        db.papers.aggregate(
+            [
+                s2orc_filter,
+                works_s2orc2oa_lookup_concise,
+                only_keep_existing_matches,
+                {
+                    "$addFields": {
+                        "works_oa": {
+                            "$cond": [{"$ne": ["$matches", []]}, "$matches", None]
+                        }
+                    }
+                },
+                {"$project": {"matches": 0}},
+            ]
+        )
+    )
+
 def main():
-    # Augment openAlex on s2orc based on DOIs, without consideration for mag
-    for year in range(2004, 2023):
+    """
+    Augment openAlex on s2orc based on DOIs, without consideration for mag.
+
+    The last few years you need more than 16Gb of memory to run it.
+
+    Perhaps we could have done that faster without uploading openAlex on the DB first.
+    We are basically loading in memory the papers for a given year and matching them
+    to the relevant identifier in the `papers` collection.
+    """
+    for year in range(1960, 2023):
         print(f"Doing: {year}")
 
         start_time = time.time()
@@ -128,3 +186,6 @@ def main():
             ]
         )
         print("Finished writing mag --- %s seconds ---" % (time.time() - start_time))
+
+if __name__ == "__main__":
+    main()

@@ -14,6 +14,7 @@ def estimate_time():
     print(f"It should take {round(test_time * (10 ** log10((tot_documents / works_oa_test_count))) / 60, 2)} mins.")
 
 def main():
+    """openAlex and s2orc don't have the same type for mag. We decided to convert OA mag into string."""
     estimate_time()
     start_time = time.time()
     db.works_oa.update_many({}, [ { "$addFields": { "mag": { "$toString": "$ids.mag" } } } ])

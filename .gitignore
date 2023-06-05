@@ -46,3 +46,4 @@ data_statements_to_embed.jsonl
 
 node_modules/
 package*
+creds.py

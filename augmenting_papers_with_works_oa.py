@@ -1,6 +1,7 @@
 import time
 from pymongo import UpdateOne
 from creds import client
+import sys
 
 db = client["papersDB"]
 
@@ -10,7 +11,6 @@ def doi_first(year):
     s2orc_filter = {
         "$match": {
             "year": year,
-            "s2fieldsofstudy.category": "Biology",
             "doi": {"$type": "string"},
         }
     }
@@ -18,7 +18,6 @@ def doi_first(year):
     oa_filter_pipeline = {
         "$match": {
             "publication_year": year,
-            "concepts.display_name": "Biology",
             "$expr": {"$eq": ["$$s2orc_doi", "$doi"]},
         }
     }
@@ -33,7 +32,7 @@ def doi_first(year):
             "as": "matches",
         }
     }
-    
+
     return list(
         db.papers.aggregate(
             [
@@ -58,7 +57,6 @@ def do_mag_with_no_doi(year):
     s2orc_filter = {
         "$match": {
             "year": year,
-            "s2fieldsofstudy.category": "Biology",
             "externalids.MAG": {"$type": "string"},
             "doi": {"$type": "null"},
         }
@@ -67,7 +65,6 @@ def do_mag_with_no_doi(year):
     oa_filter_pipeline = {
         "$match": {
             "publication_year": year,
-            "concepts.display_name": "Biology",
             "$expr": {"$eq": ["$$s2orc_mag", "$mag"]},
         }
     }
@@ -107,7 +104,6 @@ def do_arxiv(year):
     s2orc_filter = {
         "$match": {
             "year": year,
-            "s2fieldsofstudy.category": "Biology",
             "externalids.arxiv": {"$type": "string"},
             "externalids.MAG": {"$type": None},
             "doi": {"$type": None},
@@ -117,7 +113,6 @@ def do_arxiv(year):
     oa_filter_pipeline = {
         "$match": {
             "publication_year": year,
-            "concepts.display_name": "Biology",
             "$expr": {"$eq": ["$$s2orc_arxiv", "$ids.arxiv"]},
         }
     }
@@ -161,31 +156,30 @@ def main():
     We are basically loading in memory the papers for a given year and matching them
     to the relevant identifier in the `papers` collection.
     """
-    for year in range(1960, 2023):
-        print(f"Doing: {year}")
+    year = int(sys.argv[1])
+    print(f"Doing: {year}")
+    start_time = time.time()
+    db.papers.bulk_write(
+        [
+            UpdateOne(
+                {"doi": doc["doi"]}, {"$set": {"works_oa": doc["works_oa"][0]}}
+            )
+            for doc in doi_first(year)
+        ]
+    )
+    print("Finished writing DOIs --- %s seconds ---" % (time.time() - start_time))
 
-        start_time = time.time()
-        db.papers.bulk_write(
-            [
-                UpdateOne(
-                    {"doi": doc["doi"]}, {"$set": {"works_oa": doc["works_oa"][0]}}
-                )
-                for doc in doi_first(year)
-            ]
-        )
-        print("Finished writing DOIs --- %s seconds ---" % (time.time() - start_time))
-
-        start_time = time.time()
-        db.papers.bulk_write(
-            [
-                UpdateOne(
-                    {"externalids.MAG": doc["externalids"]["MAG"]},
-                    {"$set": {"works_oa": doc["works_oa"][0]}},
-                )
-                for doc in do_mag_with_no_doi(year)
-            ]
-        )
-        print("Finished writing mag --- %s seconds ---" % (time.time() - start_time))
+    start_time = time.time()
+    db.papers.bulk_write(
+        [
+            UpdateOne(
+                {"externalids.MAG": doc["externalids"]["MAG"]},
+                {"$set": {"works_oa": doc["works_oa"][0]}},
+            )
+            for doc in do_mag_with_no_doi(year)
+        ]
+    )
+    print("Finished writing mag --- %s seconds ---" % (time.time() - start_time))
 
 if __name__ == "__main__":
     main()

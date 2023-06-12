@@ -6,27 +6,38 @@ from jsonlines import jsonlines
 from pathlib import Path
 from creds import client
 from tqdm import tqdm
+import pickle
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-s", "--source", help="s2 (semantic scholar) or oa (openalex)")
-    parser.add_argument("-c", "--corpus", help="corpus within data source")
-    args = parser.parse_args()
+def read_cache(file):
+    if file.exists():
+        with open(file, 'rb') as f:
+            dat = pickle.load(f)
+    else:
+        file.touch()
+        dat = []
+    return set(dat)
 
-    assert args.source in ['oa', 's2'], "Data source doesn't exists. We have `s2` or `oa`"
-    
-    ROOT_DIR = Path()
-    # for now we hardcode the date
-    # source, corpus = 'oa', 'works'
-    SOURCE_DIR = ROOT_DIR / '20230131v1' if args.source == 's2' else ROOT_DIR / 'openalex-snapshot'
-    CORPUS_DIR = SOURCE_DIR / 'data' / args.corpus if args.source == 'oa' else SOURCE_DIR / args.corpus
+def update_cache(file, dat, done_ids):
+    new_ids = set([hash(x['id']) for x in dat])
+    done_ids = done_ids | new_ids
+    print(f"We now have {len(done_ids)} documents done.")
+    with open(file, 'ab') as f:
+        pickle.dump(done_ids, f)
 
-    assert CORPUS_DIR.exists(), "Corpus folder doesn't exist. Maybe you are in the wrong directory?"
-
+def main():
     db = client["papersDB"]
     
-    # corpus = 'authors'
+    if db[args.corpus+'_oa'].find_one() is None and cache_file.exists(): 
+        cache_file.unlink()
+    
+    done_ids = read_cache(cache_file)
+
     if args.source == 's2':
+        # semantic scholars stores is data as a list of files.
+        # File size will depend on its content, e.g.
+        # authors are ~700Mb while papers ~6.3Gb.
+        # Meaning that we should ask for more or less memory 
+        # dependending on the collection.
         files = list(CORPUS_DIR.glob("20230203_*"))
         for i, file in enumerate(files):
             if str(file).endswith("gz") == False:
@@ -38,19 +49,46 @@ if __name__ == "__main__":
         db[args.corpus].insert_many(dat)
     
     else:
-        folders = list(CORPUS_DIR.glob("updated_date=*"))
-        
+        # openalex stores is data as a list of DIR
+        folders = list(CORPUS_DIR.glob("updated_date*"))
         for i,folder in enumerate(folders):
-            # folder, i = folders[0], 1
+
             print(f"{i} / {len(folders)}")
+            # ...each having one or multiple files. 
             files = list(folder.glob("*"))
+            
             for i, file in enumerate(files):
                 print(f"{i} / {len(files)}")
                 data = []
                 with jsonlines.open(file) as f:
                     for obj in tqdm(f):
-                        data.append(obj)
-                db[args.corpus+'_oa'].insert_many(data)
+                        if obj['id'] not in done_ids:
+                            data.append(obj)
+                
+                db[args.corpus+'_'+args.source].insert_many(data)
+            
+            update_cache(cache_file, data, done_ids)
+
+if __name__ == "__main__":
+    # source, corpus = 'oa', 'works'
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-s", "--source", help="s2 (semantic scholar) or oa (openalex)")
+    parser.add_argument("-c", "--corpus", help="corpus within data source")
+    args = parser.parse_args()
+
+    assert args.source in ['oa', 's2'], "Data source doesn't exists. We have `s2` or `oa`"   
+
+    ROOT_DIR = Path()
+    SOURCE_DIR = ROOT_DIR / '20230131v1' if args.source == 's2' else ROOT_DIR / 'openalex-snapshot'
+    CORPUS_DIR = SOURCE_DIR / 'data' / args.corpus
+    CACHE_DIR = Path(".cache")
+
+    cache_file = CACHE_DIR / f"{args.corpus}_{args.source}.pkl"
+     
+    assert CORPUS_DIR.exists(), "Corpus folder doesn't exist. Maybe you are in the wrong directory?" 
+
+    main()
+
 
 
 # LOOKUP_DIR = ROOT_DIR / 's2FOS_lookup'
@@ -69,7 +107,6 @@ if __name__ == "__main__":
 #             name=name_index, 
 #             partialFilterExpression=PFE
             # )
-
 
 # # index by decade b/c fewer papers
 # for yr1, yr2 in tqdm(zip(range(1950, 1990, 10), range(1960, 2000, 10))):

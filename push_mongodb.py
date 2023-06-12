@@ -17,9 +17,9 @@ if __name__ == "__main__":
     
     ROOT_DIR = Path()
     # for now we hardcode the date
-    # source, corpus = 'oa', 'authors'
+    # source, corpus = 'oa', 'works'
     SOURCE_DIR = ROOT_DIR / '20230131v1' if args.source == 's2' else ROOT_DIR / 'openalex-snapshot'
-    CORPUS_DIR = SOURCE_DIR / 'data' / args.corpus
+    CORPUS_DIR = SOURCE_DIR / 'data' / args.corpus if args.source == 'oa' else SOURCE_DIR / args.corpus
 
     assert CORPUS_DIR.exists(), "Corpus folder doesn't exist. Maybe you are in the wrong directory?"
 
@@ -38,11 +38,11 @@ if __name__ == "__main__":
         db[args.corpus].insert_many(dat)
     
     else:
-        folders = list(CORPUS_DIR.glob("*"))
+        folders = list(CORPUS_DIR.glob("updated_date=*"))
         
         for i,folder in enumerate(folders):
+            # folder, i = folders[0], 1
             print(f"{i} / {len(folders)}")
-            
             files = list(folder.glob("*"))
             for i, file in enumerate(files):
                 print(f"{i} / {len(files)}")

@@ -25,13 +25,13 @@ A database to do science of science.
 | -------------| ------------- | ------------- | ------------- |------------- |------------- |------------- |------------- |
 | semantic scholar|  210M | 2.4B | 80.4M   | 191.5K | ? | 10.2M | 120M
 
+## TODO
 
-- [] upload s2orc from last snapshot
-- [] upload openAlex from last snapshot
-- [] upload s2orc last snapshot with openAlex last snapshot
-- [] sample DBs in way that cannot easily be done with their APIs
-  - [] sample parsed papers based on FoS.
-
+- [ ] upload s2orc from last snapshot
+- [ ] upload openAlex from last snapshot
+- [ ] upload s2orc last snapshot with openAlex last snapshot
+- [ ] sample DBs in way that cannot easily be done with their APIs
+  - [ ] sample parsed papers based on FoS.
 
 ## Accessing the mongoDB
 

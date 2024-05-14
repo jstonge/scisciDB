@@ -1,0 +1,35 @@
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "sos"
+authors = [{name = "Jonathan St-Onge"}]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+]
+requires-python=">=3.8"
+dynamic = ["version", "description"]
+dependencies = [
+    "pymongo==4.6.1",
+    "typer==0.9.0",
+    "rich==13.6.0",
+    "requests==2.31.0",
+    "tqdm==4.66.2",
+    "wget==3.2",
+    "python-dotenv==1.0.1 "
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "tox",
+    "coverage",
+    "pytest-cov",
+]
+
+[project.urls]
+Home = "https://github.com/jstonge/catDB"
+
+[project.scripts]
+kitty = "kitty:app"

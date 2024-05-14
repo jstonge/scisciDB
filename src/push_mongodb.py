@@ -3,10 +3,32 @@ Update mongoDB or openalex
 """
 import argparse
 from jsonlines import jsonlines
+import json
 from pathlib import Path
-from creds import client
+# from creds import client
 from tqdm import tqdm
+import re
 import pickle
+import gzip
+
+import dotenv
+dotenv.load_dotenv()
+
+from pymongo import MongoClient
+
+def parse_args():
+    parser = argparse.ArgumentParser("Data Downloader")
+    parser.add_argument(
+        "-i",
+        "--input",
+        type= Path,
+        help="JSONlines file with urls and hashes",
+        required=True,
+    )
+    parser.add_argument(
+        "-c", "--collection", type=str, help="MongoDB collections", required=True
+    )
+    return parser.parse_args()
 
 def read_cache(file):
     if file.exists():
@@ -25,68 +47,50 @@ def update_cache(file, dat, done_ids):
         pickle.dump(done_ids, f)
 
 def main():
+    pw = "password"
+    uri = f"mongodb://cwward:{pw}@wranglerdb01a.uvm.edu:27017/?authSource=admin&readPreference=primary&appname=MongoDB%20Compass&directConnection=true&ssl=false"
+    client = MongoClient(uri)
+
+    args = parse_args()
+    # INPUT_DIR=Path("data/openalex-snapshot/data/works")
+    # INPUT_DIR=Path("data/s2-papers")
+    # COLLECTION='s2-papers'
+    
+    INPUT_DIR = args.input 
+    COLLECTION = args.collection
+
+    cache_file = Path(".cache") / f"{COLLECTION}.pkl"
+     
     db = client["papersDB"]
     
-    if db[args.corpus+'_oa'].find_one() is None and cache_file.exists(): 
+    if db[COLLECTION].find_one() is None and cache_file.exists(): 
         cache_file.unlink()
     
     done_ids = read_cache(cache_file)
-
-    if args.source == 's2':
-        # semantic scholars stores is data as a list of files.
-        # File size will depend on its content, e.g.
-        # authors are ~700Mb while papers ~6.3Gb.
-        # Meaning that we should ask for more or less memory 
-        # dependending on the collection.
-        files = list(CORPUS_DIR.glob("20230203_*"))
-        for i, file in enumerate(files):
-            if str(file).endswith("gz") == False:
-                print(f"{i} / {len(files)}")
-                dat = []
-                with jsonlines.open(file) as f:
-                    for obj in tqdm(f):
-                        dat.append(obj)
-        db[args.corpus].insert_many(dat)
     
-    else:
-        # openalex stores is data as a list of DIR
-        folders = list(CORPUS_DIR.glob("updated_date*"))
-        for i,folder in enumerate(folders):
-
-            print(f"{i} / {len(folders)}")
-            # ...each having one or multiple files. 
-            files = list(folder.glob("*"))
+    # openalex stores is data as a list of DIRS
+    for file in list(INPUT_DIR.rglob("*")):
+        # break
+        dat = []
+        if str(file).endswith("gz"):
+            with gzip.open(file, 'rt', encoding='utf-8') as f:
+                for line in tqdm(f):
+                    obj=json.loads(line)
+                    if obj['id'] not in done_ids:
+                        dat.append(obj)
             
-            for i, file in enumerate(files):
-                print(f"{i} / {len(files)}")
-                data = []
-                with jsonlines.open(file) as f:
-                    for obj in tqdm(f):
-                        if obj['id'] not in done_ids:
-                            data.append(obj)
-                
-                db[args.corpus+'_'+args.source].insert_many(data)
-            
-            update_cache(cache_file, data, done_ids)
+    
+        else:
+            with jsonlines.open(file) as f:
+                for obj in tqdm(f):
+                    dat.append(obj)
+    
+    db[COLLECTION].insert_many(dat)
+        
+    update_cache(cache_file, dat, done_ids)
 
 if __name__ == "__main__":
-    # source, corpus = 'oa', 'works'
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-s", "--source", help="s2 (semantic scholar) or oa (openalex)")
-    parser.add_argument("-c", "--corpus", help="corpus within data source")
-    args = parser.parse_args()
-
-    assert args.source in ['oa', 's2'], "Data source doesn't exists. We have `s2` or `oa`"   
-
-    ROOT_DIR = Path()
-    SOURCE_DIR = ROOT_DIR / '20230131v1' if args.source == 's2' else ROOT_DIR / 'openalex-snapshot'
-    CORPUS_DIR = SOURCE_DIR / 'data' / args.corpus
-    CACHE_DIR = Path(".cache")
-
-    cache_file = CACHE_DIR / f"{args.corpus}_{args.source}.pkl"
-     
-    assert CORPUS_DIR.exists(), "Corpus folder doesn't exist. Maybe you are in the wrong directory?" 
-
+    
     main()
 
 

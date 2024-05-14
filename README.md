@@ -1,4 +1,21 @@
-# scisciDB
+
+## SOS cli
+
+### Installation
+
+Install the `scisciDB` command line interface, called `sos`, using the following command:
+
+```zsh
+pip install ./scisciDB
+```
+
+Since it calls the mongoDB without authentification, you need to be on the `UVM` server for the CLI to work.
+
+## Why?
+
+We want to have full text of scientific works. The only way to do it at the moment is to upload `s2orc`. We want `s2orc` to be enriched with `openAlex` metadata. So we build that small library to facilitate the interoperability of `s2orc` and `openAlex`.
+
+### Higlights
 
 A database to do science of science.
 
@@ -8,11 +25,18 @@ A database to do science of science.
 | -------------| ------------- | ------------- | ------------- |------------- |------------- |------------- |------------- |
 | semantic scholar|  210M | 2.4B | 80.4M   | 191.5K | ? | 10.2M | 120M
 
-## Instructions
 
- - `update_mongodb.sh`: push and pull data from and to the papersDB collection in our mongoDB. Run 
+- [] upload s2orc from last snapshot
+- [] upload openAlex from last snapshot
+- [] upload s2orc last snapshot with openAlex last snapshot
+- [] sample DBs in way that cannot easily be done with their APIs
+  - [] sample parsed papers based on FoS.
 
-```shell
-# update authors from openalex
-sh update_mongodb.sh oa authors
-```
+
+## Accessing the mongoDB
+
+
+#### Using MongoDB Compass
+ - Download [MongoDB Compass](https://www.mongodb.com/products/tools/compass)
+ - Follow these [instructions](https://www.uvm.edu/it/kb/article/sslvpn2/) to get on UVM's VPN.
+ - Ask me to send you the credentials.

@@ -50,3 +50,5 @@ creds.py
 20230131v1/2023-01-31_publication-venues.csv
 
 .cache/
+slurm-*
+tmp/

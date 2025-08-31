@@ -42,15 +42,18 @@ class MissingSummary(CatException):
 class InvalidCatId(CatException):
     pass
 
+# cat_db = catDB()
+# cat_db.augment_papers_with_s2orc_bool()
 
-class catDB:
+
+class sosDB:
 
 
     def __init__(self, client: MongoClient = None):
         if client is None:
             uri="mongodb://cwward:password@wranglerdb01a.uvm.edu:27017/?authSource=admin&readPreference=primary&appname=MongoDB%20Compass&directConnection=true&ssl=false"
             client = MongoClient(uri)
-        S2_API_KEY = os.environ['S2_API_KEY']
+        self.S2_API_KEY = os.environ['S2_API_KEY']
         self._db = DB(client)
 
 
@@ -67,7 +70,7 @@ class catDB:
         DATASET_NAME = "s2orc"
         LOCAL_PATH = Path("s2orc")
         LOCAL_PATH.mkdir(exist_ok=True)
-
+        
         # get latest release's ID
         response = requests.get("https://api.semanticscholar.org/datasets/v1/release/latest").json()
         RELEASE_ID = response["release_id"]
@@ -75,13 +78,36 @@ class catDB:
 
         # get the download links for the s2orc dataset; needs to pass API key through `x-api-key` header
         # download via wget. this can take a while...
-        response = requests.get(f"https://api.semanticscholar.org/datasets/v1/release/{RELEASE_ID}/dataset/{DATASET_NAME}/", headers={"x-api-key": self.S2_API_KEY}).json()
+        response = requests.get(f"https://api.semanticscholar.org/datasets/v1/release/{RELEASE_ID}/dataset/{DATASET_NAME}/", headers={"x-api-key": S2_API_KEY}).json()
         for url in tqdm(response["files"]):
-            # break
             match = re.match(r"https://ai2-s2ag.s3.amazonaws.com/staging/(.*)/s2orc/(.*).gz(.*)", url)
             assert match.group(1) == RELEASE_ID
             SHARD_ID = match.group(2)
-            wget.download(url, out=os.path.join(LOCAL_PATH, f"{SHARD_ID}.gz"))
+            if SHARD_ID in ['20240510_111959_00105_cqrfv_06d4adea-44ca-4c46-acf8-2442f1defaab',
+                            '20240510_111959_00105_cqrfv_1cba251d-aef5-43c8-982e-078aba5dfcfb',
+                            '20240510_111959_00105_cqrfv_26e8442e-6d4f-4c4e-98d8-1a4f122f88cc',
+                            '20240510_111959_00105_cqrfv_28a35758-9c8d-4bc0-945d-e5f01c9fac0b',
+                            '20240510_111959_00105_cqrfv_3307f646-2017-47b1-bae8-82430de58d39',
+                            '20240510_111959_00105_cqrfv_3622a0e7-0efa-4be4-bb22-c9ece78f4916',
+                            '20240510_111959_00105_cqrfv_398c611c-2d1f-4e56-ae86-5ace26e449e7',
+                            '20240510_111959_00105_cqrfv_46ed588b-f493-4abf-80ee-b6208802f791',
+                            '20240510_111959_00105_cqrfv_4e604ad0-b75b-4829-b66a-9afd200911df',
+                            '20240510_111959_00105_cqrfv_50200898-9cff-4a7c-a805-3913e98f921d',
+                            '20240510_111959_00105_cqrfv_55db370d-465e-4469-8128-7e41aac65ecc',
+                            '20240510_111959_00105_cqrfv_67d8fc39-f67a-4488-903a-e2a232c369d6',
+                            '20240510_111959_00105_cqrfv_77647deb-565a-4007-9bbc-4f746be02fd8',
+                            '20240510_111959_00105_cqrfv_79c1f956-08ef-4003-b884-bf0e0921bdee',
+                            '20240510_111959_00105_cqrfv_8a7a64bd-9ae9-4519-81f0-ed5fa1e21bac',
+                            '20240510_111959_00105_cqrfv_a215f6b4-0414-4939-87d1-45c7ce0b9a15',
+                            '20240510_111959_00105_cqrfv_b5510af8-4171-4f54-a253-43209b0d0b8b',
+                            '20240510_111959_00105_cqrfv_bba71f23-6043-4c32-a07a-f450aa75e618',
+                            '20240510_111959_00105_cqrfv_c0909be6-2fd1-43b3-8179-1cbd8fe724cc',
+                            '20240510_111959_00105_cqrfv_bfa26a57-037a-4073-851b-fe8f98ab6aa5',
+                            '20240510_111959_00105_cqrfv_d3227579-d76d-4736-84d6-aa0c09854103',
+                            '20240510_111959_00105_cqrfv_f440e705-035d-4043-9e53-73fc87336793',
+                            '20240510_111959_00105_cqrfv_fee02487-45da-40dc-bd96-1558c6d2b7d1',
+                            '20240510_111959_00105_cqrfv_fc45a9fc-8cac-45b0-9341-3d96c904d193']:
+                wget.download(url, out=os.path.join(LOCAL_PATH, f"{SHARD_ID}.gz"))
         
         print("Downloaded all shards.")
 
@@ -161,12 +187,12 @@ class catDB:
             print(f"Doing: {year}")
 
             start_time = time.time()
-            self.db.papers.bulk_write(
+            self._db._db.papers.bulk_write(
                 [
                     UpdateOne(
                         {"corpusid": doc["corpusid"]}, {"$set": {"s2orc_parsed": True}}
                     )
-                    for doc in list(self.db.s2orc.find({}, {"corpusid": 1}))
+                    for doc in list(self._db._db.s2orc.find({}, {"corpusid": 1}))
                 ]
             )
             print("Finished writing DOIs --- %s seconds ---" % (time.time() - start_time))
@@ -174,17 +200,17 @@ class catDB:
     def convert_mag_to_sting(self):
         """openAlex and s2orc don't have the same type for mag. We decided to convert OA mag into string."""
         # estimate time
-        tot_documents = self.db.works_oa.estimated_document_count()
-        works_oa_test_count = self.db.works_oa_test.estimated_document_count()
+        tot_documents = self._db.works_oa.estimated_document_count()
+        works_oa_test_count = self._db.works_oa_test.estimated_document_count()
         start_time = time.time()
-        self.db.works_oa_test.update_many({}, [ { "$addFields": { "mag": { "$toString": "$ids.mag" } } } ])
+        self._db.works_oa_test.update_many({}, [ { "$addFields": { "mag": { "$toString": "$ids.mag" } } } ])
         test_time = (time.time() - start_time)   
         
         print(f"It took {round(test_time, 2)}s for {works_oa_test_count} documents")
         print(f"It should take {round(test_time * (10 ** log10((tot_documents / works_oa_test_count))) / 60, 2)} mins.")
 
         start_time = time.time()
-        self.db.works_oa.update_many({}, [ { "$addFields": { "mag": { "$toString": "$ids.mag" } } } ])
+        self._db.works_oa.update_many({}, [ { "$addFields": { "mag": { "$toString": "$ids.mag" } } } ])
         time_taken = (time.time() - start_time)
         print(f"Process finished {time_taken / 60} mins")
     
@@ -192,7 +218,7 @@ class catDB:
     def add_http(self):
         self.estimate_time()
         start_time = time.time()
-        self.db.papers.update_many({}, [ 
+        self._db.papers.update_many({}, [ 
             { "$set": { "doi": { "$cond": [ 
                 { "$ne": ["$externalids.DOI", None] },
                 { "$concat": ["https://doi.org/", "$externalids.DOI"] },
@@ -214,7 +240,7 @@ class catDB:
         year = int(sys.argv[1])
         print(f"Doing: {year}")
         start_time = time.time()
-        self.db.papers.bulk_write(
+        self._db.papers.bulk_write(
             [
                 UpdateOne(
                     {"doi": doc["doi"]}, {"$set": {"works_oa": doc["works_oa"][0]}}
@@ -224,7 +250,7 @@ class catDB:
         )
         print("Finished writing DOIs --- %s seconds ---" % (time.time() - start_time))
         start_time = time.time()
-        self.db.papers.bulk_write(
+        self._db.papers.bulk_write(
             [
                 UpdateOne(
                     {"externalids.MAG": doc["externalids"]["MAG"]},
@@ -249,11 +275,11 @@ class catDB:
     
 
     def estimate_time(self):
-        tot_documents = self.db.papers.estimated_document_count()
-        papers_test_count = self.db.papers_test.estimated_document_count()
+        tot_documents = self._db.papers.estimated_document_count()
+        papers_test_count = self._db.papers_test.estimated_document_count()
         
         start_time = time.time()
-        self.db.papers_test.update_many({}, [ 
+        self._db.papers_test.update_many({}, [ 
             { "$set": { "doi": { "$cond": [ 
                 { "$ne": ["$externalids.DOI", None] },
                 { "$concat": ["https://doi.org/", "$externalids.DOI"] },
@@ -296,7 +322,7 @@ class catDB:
         }
 
         return list(
-            self.db.papers.aggregate(
+            self._db.papers.aggregate(
                 [
                     s2orc_filter,
                     works_s2orc2oa_lookup_concise,
@@ -342,7 +368,7 @@ class catDB:
         }
 
         return list(
-            self.db.papers.aggregate(
+            self._db.papers.aggregate(
                 [
                     s2orc_filter,
                     works_s2orc2oa_lookup_concise,
@@ -389,7 +415,7 @@ class catDB:
         }
 
         return list(
-            self.db.papers.aggregate(
+            self._db.papers.aggregate(
                 [
                     s2orc_filter,
                     works_s2orc2oa_lookup_concise,
@@ -405,3 +431,4 @@ class catDB:
                 ]
             )
         )
+    

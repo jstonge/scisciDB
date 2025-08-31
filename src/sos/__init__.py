@@ -1,4 +1,4 @@
-"""Top-level package for kitty cli."""
+"""Top-level package for SOS cli."""
 
 __version__ = "0.0.1"
 

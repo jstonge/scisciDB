@@ -10,10 +10,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from sciscidb.download import (
-    download_semantic_scholar, 
     download_dataset, 
-    get_dataset_info,
-    list_available_datasets
+    get_dataset_info
 )
 from sciscidb.config import config
 
@@ -46,18 +44,6 @@ def main():
     )
     
     args = parser.parse_args()
-    
-    # List available datasets
-    if args.list:
-        try:
-            datasets = list_available_datasets(args.source)
-            print(f"Available datasets from {args.source}:")
-            for dataset in datasets:
-                print(f"  - {dataset}")
-        except Exception as e:
-            print(f"❌ Failed to list datasets: {e}")
-            sys.exit(1)
-        return
     
     # Show dataset info
     if args.info:

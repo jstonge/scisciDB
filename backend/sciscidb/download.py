@@ -128,6 +128,26 @@ def download_semantic_scholar(dataset_name: str, clean_slate: bool = False) -> P
                 file_response = requests.get(url, timeout=300, stream=True)
                 file_response.raise_for_status()
                 
+                # Determine if file is compressed by checking content headers
+                content_type = file_response.headers.get('content-type', '')
+                content_encoding = file_response.headers.get('content-encoding', '')
+                
+                # Check if it's compressed
+                is_compressed = (
+                    'gzip' in content_type.lower() or
+                    'gzip' in content_encoding.lower() or
+                    parsed_url.path.endswith('.json.gz') or
+                    parsed_url.path.endswith('.gz')
+                )
+                
+                # Set filenames based on compression detection
+                if is_compressed:
+                    downloaded_file = dataset_path / f"{filename}.json.gz"
+                    final_file = dataset_path / f"{filename}.json"
+                else:
+                    downloaded_file = dataset_path / f"{filename}.json"
+                    final_file = downloaded_file
+                
                 # Write to file
                 with open(downloaded_file, 'wb') as f:
                     for chunk in file_response.iter_content(chunk_size=8192):
@@ -137,10 +157,16 @@ def download_semantic_scholar(dataset_name: str, clean_slate: bool = False) -> P
                 file_size = downloaded_file.stat().st_size
                 print(f"  ✓ Downloaded {downloaded_file.name} ({file_size / 1024 / 1024:.1f} MB)")
                 
-                # Decompress if it's a .gz file
-                if downloaded_file.name.endswith('.json.gz'):
+                # If we detected compression, try to decompress
+                if is_compressed and downloaded_file.name.endswith('.json.gz'):
                     print(f"  Decompressing {downloaded_file.name}...")
                     try:
+                        # Test if it's actually compressed by trying to read it
+                        with gzip.open(downloaded_file, 'rt', encoding='utf-8') as gz_file:
+                            # Read just a small chunk to test
+                            test_chunk = gz_file.read(100)
+                        
+                        # If we got here, it's valid gzip, decompress the whole thing
                         with gzip.open(downloaded_file, 'rt', encoding='utf-8') as gz_file:
                             with open(final_file, 'w', encoding='utf-8') as out_file:
                                 out_file.write(gz_file.read())
@@ -151,9 +177,35 @@ def download_semantic_scholar(dataset_name: str, clean_slate: bool = False) -> P
                         final_size = final_file.stat().st_size
                         print(f"  ✓ Decompressed to {final_file.name} ({final_size / 1024 / 1024:.1f} MB)")
                         
-                    except Exception as e:
-                        print(f"  ✗ Failed to decompress {downloaded_file.name}: {e}")
-                        print(f"  → Keeping compressed file as {downloaded_file.name}")
+                    except (gzip.BadGzipFile, UnicodeDecodeError, OSError) as e:
+                        # Not actually compressed, rename file
+                        print(f"  → File not actually compressed, renaming to .json")
+                        if downloaded_file.exists():
+                            downloaded_file.rename(dataset_path / f"{filename}.json")
+                
+                # Double-check: if file looks like it should be compressed but isn't named .gz
+                elif not is_compressed and downloaded_file.name.endswith('.json'):
+                    # Test if the file is actually gzipped despite headers
+                    try:
+                        with gzip.open(downloaded_file, 'rt', encoding='utf-8') as gz_file:
+                            test_chunk = gz_file.read(100)
+                        
+                        # It is compressed! Rename and decompress
+                        print(f"  → File is actually compressed, fixing...")
+                        compressed_file = dataset_path / f"{filename}.json.gz"
+                        downloaded_file.rename(compressed_file)
+                        
+                        with gzip.open(compressed_file, 'rt', encoding='utf-8') as gz_file:
+                            with open(final_file, 'w', encoding='utf-8') as out_file:
+                                out_file.write(gz_file.read())
+                        
+                        compressed_file.unlink()
+                        final_size = final_file.stat().st_size
+                        print(f"  ✓ Decompressed to {final_file.name} ({final_size / 1024 / 1024:.1f} MB)")
+                        
+                    except (gzip.BadGzipFile, UnicodeDecodeError, OSError):
+                        # Actually not compressed, leave as is
+                        pass
                 
             except requests.RequestException as e:
                 print(f"  ✗ Failed to download file {i}: {e}")
@@ -196,30 +248,6 @@ def download_openalex(dataset_name: str, clean_slate: bool = False) -> Path:
     # TODO: Implement OpenAlex download
     raise NotImplementedError("OpenAlex download not yet implemented")
 
-def list_available_datasets(source: str = "semantic_scholar") -> List[str]:
-    """
-    List available datasets from a source
-    
-    Args:
-        source: Data source (semantic_scholar, openalex)
-        
-    Returns:
-        List of available dataset names
-    """
-    if source == "semantic_scholar":
-        # Common Semantic Scholar datasets
-        return [
-            "papers",
-            "authors", 
-            "publication-venues",
-            "citations",
-            "abstracts",
-            "s2orc"
-        ]
-    elif source == "openalex":
-        return ["works", "authors", "venues", "institutions", "concepts"]
-    else:
-        raise ValueError(f"Unknown source: {source}")
 
 def download_dataset(source: str, dataset_name: str, clean_slate: bool = False) -> Path:
     """

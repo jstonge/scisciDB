@@ -119,6 +119,45 @@ class Config:
         print(f"Database: {self.db_name} @ {self.mongo_uri}")
         print(f"S2 API Key: {'✓ Set' if self.semantic_scholar_key else '✗ Missing'}")
 
+
+    def test_database_connection(self):
+        """Test database connection and show detailed error info"""
+        print("Testing database connection...")
+        try:
+            from pymongo import MongoClient
+            from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
+            
+            print(f"Attempting to connect to: {self.db_name} database")
+            print(f"Using URI: {self.mongo_uri.split('@')[0]}@***" if '@' in self.mongo_uri else self.mongo_uri)
+            
+            # Create client with short timeout for testing
+            client = MongoClient(self.mongo_uri, serverSelectionTimeoutMS=5000)
+            
+            # Test connection
+            client.admin.command('ping')
+            print("✓ Database connection successful!")
+            
+            # Test database access
+            db = client[self.db_name]
+            collections = db.list_collection_names()
+            print(f"✓ Database '{self.db_name}' accessible")
+            print(f"✓ Found {len(collections)} collections: {collections}")
+            
+            client.close()
+            return True
+            
+        except ConnectionFailure as e:
+            print(f"✗ Connection failed: {e}")
+            print("  Check if MongoDB server is running and accessible")
+            return False
+        except ServerSelectionTimeoutError as e:
+            print(f"✗ Server selection timeout: {e}")
+            print("  Check network connectivity and server address")
+            return False
+        except Exception as e:
+            print(f"✗ Unexpected error: {e}")
+            return False
+        
 # Singleton instance
 config = Config()
 

@@ -31,7 +31,7 @@ class DatabaseManager:
 db_manager = DatabaseManager()
 
 def get_venue_year_counts(collection_name: str, venues: List[str] = None, 
-                         estimated: bool = True, sample_size: int = 10_000_000) -> List[Dict[str, Any]]:
+                         estimated: bool = False, sample_size: int = 10_000_000) -> List[Dict[str, Any]]:
     """Get paper counts by venue and year - optimized for speed"""
     collection = db_manager.get_collection(collection_name)
     

@@ -180,7 +180,87 @@ def export_top_venues(limit: int = 50) -> Dict[str, Any]:
         logger.error(f"Failed to export top venues: {e}")
         raise ExportError(f"Top venues export failed: {e}")
 
-def export_collection_info() -> Dict[str, Any]:
+def export_group_count(collection_name: str, field: str, limit: int = 50, 
+                      filter_field: str = None, filter_value: str = None, 
+                      estimated: bool = True, sample_size: int = 50000) -> Dict[str, Any]:
+    """
+    Export group count results for frontend visualization
+    
+    Args:
+        collection_name: MongoDB collection name
+        field: Field to group by
+        limit: Number of top results
+        filter_field: Optional field to filter on
+        filter_value: Optional value to filter by
+        estimated: Use sampling for speed
+        sample_size: Sample size for estimation
+        
+    Returns:
+        Dictionary with group count data and metadata
+    """
+    try:
+        from .database import db_manager
+        
+        collection = db_manager.get_collection(collection_name)
+        
+        pipeline = []
+        
+        if estimated:
+            pipeline.append({"$sample": {"size": sample_size}})
+        
+        # Build match conditions
+        match_conditions = {field: {"$exists": True, "$ne": None}}
+        if filter_field and filter_value:
+            match_conditions[filter_field] = {"$regex": f"^{filter_value}$", "$options": "i"}
+        
+        pipeline.extend([
+            {"$match": match_conditions},
+            {"$group": {
+                "_id": f"${field}",
+                "count": {"$sum": 1}
+            }},
+            {"$sort": {"count": -1}},
+            {"$limit": limit}
+        ])
+        
+        results = list(collection.aggregate(pipeline))
+        
+        # Extrapolate if using sampling
+        if estimated and results:
+            total_docs = collection.estimated_document_count()
+            extrapolation_factor = total_docs / sample_size if sample_size < total_docs else 1
+            
+            for result in results:
+                result['count'] = int(result['count'] * extrapolation_factor)
+        
+        # Format for frontend consumption
+        data = []
+        for result in results:
+            data.append({
+                field: result['_id'],
+                'count': result['count']
+            })
+        
+        export_data = {
+            "data": data,
+            "metadata": {
+                "collection": collection_name,
+                "field": field,
+                "filter_field": filter_field,
+                "filter_value": filter_value,
+                "estimated": estimated,
+                "sample_size": sample_size if estimated else None,
+                "total_results": len(data),
+                "exported_at": datetime.now().isoformat(),
+                "query_type": "group_count"
+            }
+        }
+        
+        return export_data
+        
+    except Exception as e:
+        logger.error(f"Failed to export group count: {e}")
+        raise ExportError(f"Group count export failed: {e}")
     """
     Export basic information about all collections
     
@@ -291,6 +371,39 @@ def export_all_datasets(export_dir: Path = None) -> Path:
         print("  git add frontend/static/data/ && git commit -m 'Update data exports'")
     
     return export_dir
+
+def export_group_count_to_file(collection_name: str, field: str, output_file: Path, 
+                               limit: int = 50, filter_field: str = None, filter_value: str = None,
+                               estimated: bool = True, sample_size: int = 50000) -> None:
+    """
+    Export group count results directly to a file
+    
+    Args:
+        collection_name: MongoDB collection name
+        field: Field to group by  
+        output_file: Path where to save the JSON file
+        limit: Number of top results
+        filter_field: Optional field to filter on
+        filter_value: Optional value to filter by
+        estimated: Use sampling for speed
+        sample_size: Sample size for estimation
+    """
+    try:
+        data = export_group_count(collection_name, field, limit, filter_field, 
+                                filter_value, estimated, sample_size)
+        
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        
+        with open(output_file, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        
+        file_size = output_file.stat().st_size
+        print(f"✓ Exported group count to {output_file}")
+        print(f"✓ File size: {file_size / 1024:.1f} KB")
+        print(f"✓ Contains {len(data['data'])} results")
+        
+    except Exception as e:
+        raise ExportError(f"Failed to export group count to file: {e}")
 
 # Convenience functions
 def quick_export() -> Path:

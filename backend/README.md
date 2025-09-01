@@ -33,27 +33,6 @@ backend/
 └── README.md                   # This file
 ```
 
-## Key Features
-
-### Smart Environment Detection
-- **HPC Mode**: Auto-detects `/netfiles` and uses group directories
-- **Local Mode**: Uses project-relative paths for development
-- **Path Resolution**: Handles dataset name variations automatically
-
-### Intelligent ID Field Detection
-Different Semantic Scholar datasets use different ID fields:
-- **Papers**: `corpusid`
-- **Authors**: `authorid` 
-- **Venues**: `venueid`
-- **Abstracts**: `corpusid`
-
-The upload system automatically detects and uses the correct field.
-
-### Robust File Processing
-- Handles both `.json` and `.json.gz` files
-- Supports JSON Lines and regular JSON formats
-- Graceful error handling and duplicate management
-
 ## Installation & Setup
 
 ### 1. Environment Setup
@@ -61,88 +40,93 @@ The upload system automatically detects and uses the correct field.
 ```bash
 # Required environment variables
 export S2_API_KEY="your_semantic_scholar_api_key"
-export MONGO_URI="mongodb://username:{pw}@host:port/?authSource=admin"
+export MONGO_URI="mongodb://username:password@host:port/?authSource=admin"
 
-# Optional: Custom data path (auto-detected on HPC)
+# Data path to scisciDB
 export SCISCI_DATA_PATH="/netfiles/compethicslab/scisciDB/semanticscholar"
 ```
 
-### 2. Install Dependencies using `uv`
+### 2. Install Dependencies
 
 ```bash
 uv sync
+source .venv/bin.activate
 ```
 
-## Usage
+## CLI Database Operations
 
-### Download Datasets
+The backend provides powerful CLI tools for exploring and analyzing your data without writing code.
 
-Note: You need you're own API key to replicate the workflow.
+### Basic Database Operations
 
 ```bash
-# Download papers dataset
-python scripts/download_data.py papers --clean-slate
+# Test database connection
+python scripts/db_operations.py test-connection
 
-# Download authors dataset  
-python scripts/download_data.py authors
+# List all collections
+python scripts/db_operations.py list-collections
 
-# List available datasets
-python scripts/download_data.py --list
+# Count documents (fast estimates)
+python scripts/db_operations.py count --collection papers
+python scripts/db_operations.py count --all
 
-# Check what's already downloaded
-python scripts/download_data.py papers --info
+# Exact counts (slower but precise)
+python scripts/db_operations.py count --collection papers --exact
+
+# Explore data structure
+python scripts/db_operations.py sample --collection papers
 ```
 
-### Upload to MongoDB
+### Group Count Analysis
+
+Perform fast aggregations on large datasets with sampling:
 
 ```bash
-# Upload with auto-detected paths
-python scripts/upload_data.py -i papers -c papers --clean-slate
-python scripts/upload_data.py -i authors -c authors --clean-slate
-python scripts/upload_data.py -i publication-venues -c publication-venues --clean-slate
+# Top venues by paper count
+python scripts/db_operations.py group-count --collection papers --field venue
 
-# Upload from custom path
-python scripts/upload_data.py -i /path/to/data/ -c my_collection
+# Papers by publication year
+python scripts/db_operations.py group-count --collection papers --field year --limit 30
+
+# Fast analysis with 10k sample (seconds instead of minutes)
+python scripts/db_operations.py group-count --collection papers --field venue --fast
 ```
 
-### Export for Frontend
+### Filtered Analysis
+
+Combine filtering with grouping for targeted analysis:
 
 ```bash
-# Explore data structure first
-python scripts/export_data.py --explore
+# Nature papers by year
+python scripts/db_operations.py group-count \
+  --collection papers \
+  --field year \
+  --filter-field venue \
+  --filter-value "Nature"
 
-# Export all datasets
-python scripts/export_data.py
+# Publication types in 2023
+python scripts/db_operations.py group-count \
+  --collection papers \
+  --field publicationtypes \
+  --filter-field year \
+  --filter-value "2023"
 
-# Export directly to frontend
-python scripts/export_data.py --frontend /path/to/frontend/static/data/
+# Top venues for recent papers
+python scripts/db_operations.py group-count \
+  --collection papers \
+  --field venue \
+  --filter-field year \
+  --filter-value "2024" \
+  --limit 50
 ```
 
-## Data Flow
+### Performance Options
 
-### 1. Download Process
-```python
-# Downloads from Semantic Scholar API
-papers_path = download_semantic_scholar("papers", clean_slate=True)
-# → /netfiles/compethicslab/scisciDB/semanticscholar/papers/papers_1.json, papers_2.json, ...
-```
+Choose speed vs accuracy based on your needs:
 
-### 2. Upload Process  
-```python
-# Smart ID detection and MongoDB upload
-stats = upload_to_mongodb(papers_path, "papers", clean_slate=True)
-# → Creates unique index on 'corpusid', inserts ~2M papers
-```
-
-### 3. Export Process
-```python
-# Generate static JSON for frontend
-export_all_datasets()
-# → exports/papers_sample.json, venue_timeline.json, top_venues.json
-```
-## Performance Considerations
-
-- **Large files**: Uses streaming downloads and chunked processing
-- **Memory usage**: Processes files one at a time, not all in memory
-- **Database**: Uses bulk inserts and unique indexes for efficiency
-- **Deduplication**: MongoDB-level unique constraints, not application-level
+| Option | Sample Size | Time (200M papers) | Accuracy |
+|--------|-------------|-------------------|----------|
+| `--fast` | 10,000 | 2-5 seconds | ±15% |
+| Default | 50,000 | 5-15 seconds | ±5% |
+| `--sample 100000` | 100,000 | 10-30 seconds | ±3% |
+| `--exact` | All documents | 30-300 seconds | Exact |

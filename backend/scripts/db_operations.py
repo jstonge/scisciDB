@@ -18,8 +18,8 @@ from sciscidb.database import (
 )
 from sciscidb.config import config
 
-def group_count(collection_name: str, field: str, limit: int = 20, estimated: bool = False, sample_size: int = 100000):
-    """Perform group count aggregation on a field"""
+def group_count(collection_name: str, field: str, limit: int = 20, estimated: bool = False, sample_size: int = 50000, filter_field: str = None, filter_value: str = None):
+    """Perform group count aggregation on a field with optional filtering"""
     collection = db_manager.get_collection(collection_name)
     
     pipeline = []
@@ -28,8 +28,15 @@ def group_count(collection_name: str, field: str, limit: int = 20, estimated: bo
         # Use sampling for fast approximate results
         pipeline.append({"$sample": {"size": sample_size}})
     
+    # Add filter conditions
+    match_conditions = {field: {"$exists": True, "$ne": None}}
+    
+    if filter_field and filter_value:
+        # Add filter condition (case-insensitive for strings)
+        match_conditions[filter_field] = {"$regex": f"^{filter_value}$", "$options": "i"}
+    
     pipeline.extend([
-        {"$match": {field: {"$exists": True, "$ne": None}}},  # Filter out missing values
+        {"$match": match_conditions},
         {"$group": {
             "_id": f"${field}",
             "count": {"$sum": 1}
@@ -55,76 +62,43 @@ def group_count(collection_name: str, field: str, limit: int = 20, estimated: bo
 
 def main():
     parser = argparse.ArgumentParser(description="Basic database operations")
+    
+    # Positional argument
     parser.add_argument(
         "action",
-        choices=["count", "list-collections", "sample", "query", "test-connection", "group-count"],
+        choices=["count", "list-collections", "sample", "query", "test-connection", "group-count", "export-count"],
         help="Action to perform"
     )
-    parser.add_argument(
-        "--collection", "-c",
-        help="Collection name"
-    )
-    parser.add_argument(
-        "--field", "-f",
-        help="Field to group by (for group-count action)"
-    )
-    parser.add_argument(
-        "--all", 
-        action="store_true",
-        help="Apply to all collections (for count action)"
-    )
-    parser.add_argument(
-        "--exact",
-        action="store_true",
-        help="Use exact count (slow) instead of estimated count (fast)"
-    )
+    
+    # Optional arguments
+    parser.add_argument("--collection", "-c", help="Collection name")
+    parser.add_argument("--field", "-f", help="Field to group by (for group-count action)")
+    parser.add_argument("--filter-field", help="Field to filter on (e.g., 'venue')")
+    parser.add_argument("--filter-value", help="Value to filter by (e.g., 'Nature')")
+    parser.add_argument("--all", action="store_true", help="Apply to all collections (for count action)")
     parser.add_argument("--limit", "-l", type=int, default=20, help="Limit for query results")
+    parser.add_argument("--exact", action="store_true", help="Use exact count instead of estimated")
+    parser.add_argument("--sample", "-s", type=int, default=50000, help="Sample size for estimates (default: 50000)")
+    parser.add_argument("--fast", action="store_true", help="Use smaller sample for faster results (10k sample)")
+    parser.add_argument("--output", "-o", help="Output file path for export-count action")
     
     args = parser.parse_args()
     
+    print(f"Debug: args.limit = {args.limit}")  # Debug line
+    
     try:
         if args.action == "test-connection":
-            # Test database connection with detailed info
             config.print_config()
             print("\n" + "="*50)
             success = config.test_database_connection()
             sys.exit(0 if success else 1)
         
-        # For other actions, connect to database
+        # Connect to database for other actions
         if not db_manager.connect():
             print("Failed to connect to database. Use 'test-connection' for details.")
             sys.exit(1)
         
-        if args.action == "list-collections":
-            collections = list_collections()
-            print("Available collections:")
-            for coll in collections:
-                print(f"  - {coll}")
-        
-        elif args.action == "count":
-            count_type = "exact" if args.exact else "estimated"
-            
-            if args.all:
-                # Count all collections
-                collections = list_collections()
-                print(f"Document counts ({count_type}):")
-                total = 0
-                for coll in collections:
-                    count = count_documents(coll, exact=args.exact)
-                    print(f"  {coll}: {count:,} documents")
-                    total += count
-                print(f"  Total: {total:,} documents")
-                
-            elif args.collection:
-                # Count specific collection
-                count = count_documents(args.collection, exact=args.exact)
-                print(f"{args.collection}: {count:,} documents ({count_type})")
-                
-            else:
-                print("Either --collection or --all required for count action")
-                sys.exit(1)
-        
-        elif args.action == "group-count":
+        if args.action == "group-count":
             if not args.collection:
                 print("--collection required for group-count action")
                 sys.exit(1)
@@ -132,49 +106,90 @@ def main():
                 print("--field required for group-count action")
                 sys.exit(1)
             
-            # Use estimated count for large collections unless --exact is specified
-            use_estimated = not args.exact
+            # Determine sample size
+            if args.fast:
+                sample_size = 10000
+            else:
+                sample_size = args.sample
             
+            use_estimated = not args.exact
             results, was_estimated = group_count(
                 args.collection, 
                 args.field, 
                 args.limit, 
-                estimated=use_estimated
+                estimated=use_estimated, 
+                sample_size=sample_size,
+                filter_field=args.filter_field,
+                filter_value=args.filter_value
             )
             
             if results:
                 count_type = "estimated" if was_estimated else "exact"
-                print(f"Top {len(results)} values for '{args.field}' in '{args.collection}' ({count_type}):")
-                total_shown = sum(r['count'] for r in results)
+                
+                # Build description
+                description = f"'{args.field}' in '{args.collection}'"
+                if args.filter_field and args.filter_value:
+                    description += f" (filtered by {args.filter_field}='{args.filter_value}')"
+                
+                if was_estimated:
+                    print(f"Top {len(results)} values for {description} ({count_type}, {sample_size:,} sample):")
+                else:
+                    print(f"Top {len(results)} values for {description} ({count_type}):")
                 
                 for i, result in enumerate(results, 1):
                     value = result['_id']
                     count = result['count']
-                    # Truncate long values
-                    if isinstance(value, str) and len(value) > 50:
-                        display_value = value[:50] + "..."
-                    else:
-                        display_value = value
-                    
-                    # Show ~ for estimated counts
+                    display_value = value if len(str(value)) <= 50 else str(value)[:50] + "..."
                     count_display = f"~{count:,}" if was_estimated else f"{count:,}"
                     print(f"  {i:2d}. {display_value}: {count_display}")
-                
-                total_display = f"~{total_shown:,}" if was_estimated else f"{total_shown:,}"
-                print(f"\nTotal documents shown: {total_display}")
-                
+                    
                 if was_estimated:
-                    print("Note: Counts are estimated based on 100k sample. Use --exact for precise counts.")
-                
-                # Show what fields are available for this collection
-                sample = get_sample_document(args.collection)
-                if sample:
-                    available_fields = list(sample.keys())[:10]  # First 10 fields
-                    print(f"Available fields: {', '.join(available_fields)}")
-                    if len(sample.keys()) > 10:
-                        print(f"... and {len(sample.keys()) - 10} more")
+                    accuracy = "±15%" if sample_size < 25000 else "±10%" if sample_size < 75000 else "±5%"
+                    print(f"Note: Estimated counts ({accuracy} accuracy). Use --exact for precise counts.")
             else:
-                print(f"No results found for field '{args.field}' in collection '{args.collection}'")
+                description = f"field '{args.field}' in collection '{args.collection}'"
+                if args.filter_field and args.filter_value:
+                    description += f" with {args.filter_field}='{args.filter_value}'"
+                print(f"No results found for {description}")
+        
+        elif args.action == "export-count":
+            if not args.collection:
+                print("--collection required for export-count action")
+                sys.exit(1)
+            if not args.field:
+                print("--field required for export-count action")
+                sys.exit(1)
+            if not args.output:
+                print("--output required for export-count action")
+                sys.exit(1)
+            
+            from sciscidb.export import export_group_count_to_file
+            from pathlib import Path
+            
+            # Determine sample size
+            if args.fast:
+                sample_size = 10000
+            else:
+                sample_size = args.sample
+            
+            use_estimated = not args.exact
+            output_path = Path(args.output)
+            
+            export_group_count_to_file(
+                collection_name=args.collection,
+                field=args.field,
+                output_file=output_path,
+                limit=args.limit,
+                filter_field=args.filter_field,
+                filter_value=args.filter_value,
+                estimated=use_estimated,
+                sample_size=sample_size
+            )
+            
+            print(f"\nReady for frontend! You can now:")
+            print(f"  cp {output_path} frontend/static/data/")
+            print(f"  # Then import in your Svelte component:")
+            print(f"  import data from '$lib/data/{output_path.name}';")
         
         elif args.action == "sample":
             if not args.collection:

@@ -56,7 +56,7 @@
     :global(.slider-range) {
         position: absolute;
         height: 100%;
-        background: #3b82f6;
+        background: #959595;
         border-radius: 9999px;
     }
 
@@ -65,7 +65,7 @@
         width: 1rem;
         height: 1rem;
         background: white;
-        border: 2px solid #3b82f6;
+        border: 2px solid #959595;
         border-radius: 50%;
         cursor: pointer;
         transition: all 150ms ease;
@@ -76,7 +76,7 @@
     }
 
     :global(.slider-thumb:focus-visible) {
-        outline: 2px solid #3b82f6;
+        outline: 2px solid #7a7a7a;
         outline-offset: 2px;
     }
 
@@ -91,6 +91,6 @@
 
     :global(.dark .slider-thumb) {
         background: #1f2937;
-        border-color: #60a5fa;
+        border-color: #999999;
     }
 </style>

@@ -25,9 +25,9 @@
     }
 
     :global(.simple-toggle[data-state="on"]) {
-        background: #3b82f6;
+        background: #616161;
         color: white;
-        border-color: #3b82f6;
+        border-color: #505050;
     }
 
     .toggle-switch {
@@ -40,7 +40,7 @@
     }
 
     :global(.simple-toggle[data-state="on"]) .toggle-switch {
-        background: #1e40af;
+        background: #979797;
     }
 
     .toggle-knob {

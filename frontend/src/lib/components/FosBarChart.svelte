@@ -13,7 +13,6 @@
                 {data}
                 x="field"
                 y="total_count"
-                fill="midnightblue"
                 fillOpacity=0.6
                 stroke="black"
             />

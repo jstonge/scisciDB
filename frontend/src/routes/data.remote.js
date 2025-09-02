@@ -1,5 +1,5 @@
 // frontend/src/routes/data.remote.js
-import { prerender, query } from '$app/server';
+import { prerender } from '$app/server';
 import * as v from 'valibot';
 import { db } from "$lib/server/db/index.js"
 
@@ -13,7 +13,7 @@ export const getVenues = prerender(async () => {
 });
 
 // Get papers with min year and venue filters
-export const getFilteredPapers = query(
+export const getFilteredPapers = prerender(
   v.object({
     venue: v.string(),
     minYear: v.number()

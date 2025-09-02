@@ -33,6 +33,7 @@ export const getFieldsStem = prerender(async () => {
         eq(fields.field, "Engineering"),
         eq(fields.field, "Environmental Science"),
         eq(fields.field, "Agricultural and Food Sciences"),
+        eq(fields.field, "Mathematics"),
       )
     )
   )
@@ -54,7 +55,6 @@ export const getFieldsSocSci = prerender(async () => {
               eq(fields.field, "Political Science"),
               eq(fields.field, "Economics"),
               eq(fields.field, "Sociology"),
-              eq(fields.field, "Mathematics"),
               eq(fields.field, "Philosophy"),
               eq(fields.field, "Art"),
               eq(fields.field, "Education"),

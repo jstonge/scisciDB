@@ -52,13 +52,15 @@
         <Streamgraph {data} {isNormalized}/>
     {/await}
     
-    <p>And now we do the same for the social sciences and humanities:</p>
+    <p>When normalized, we note that medicine takes up much of the shares, which make sense as pubmed is a big open source datasets integrated in the database. Interestingly, we can see the extra space medicine takes around 2020, which is probably all the biomedical research that has been happening around COVID-19. We can see the rise of computer science. And now we do the same for the social sciences and humanities:</p>
 
     {#await getFieldsSocSci()}
         <p>Loading...</p>
     {:then data}    
         <Streamgraph {data} {isNormalized}/>
     {/await}
+
+    <p>Here we will take the data with a grain of salt, as it could be something with how we wrangled the data (we are taking the first field of study in a list of entries) or perhaps something with the semantic scholar classifier, but what is up with Psychology after 2020?! Sociology grew almost to a 25% of papers in that categorization. The Art was also fairly constant, until COVID-19 hit. But again, I would take all that with a big grain of salt. The important bit here is to have a broad overview of what field of studies are biasing the semantic scholar dataset, nothing less, nothing more.</p>
 
     <h3>Time series venues</h3>
     

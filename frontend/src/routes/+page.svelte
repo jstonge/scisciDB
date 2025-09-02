@@ -1,17 +1,11 @@
 <!-- +page.svelte -->
 <script>
-    import { getVenues, getAllPapers } from './data.remote.js';
+  import { getVenues, getAllPapers } from './data.remote.js';
     import { Plot, BarY, HTMLTooltip } from 'svelteplot';
     
     let selectedVenue = $state('Nature');
     let minYear = $state(1970);
   
-    // Get filtered data reactively
-    //   let displayData = $derived(getFilteredPapers({ venue: selectedVenue, minYear }));
-    let displayData = $derived(async () => {
-        const allPapers = await getAllPapers();
-        return allPapers.filter(p => p.venue === selectedVenue && p.year >= minYear);
-    });
     </script>
 
 <div class="dashboard">
@@ -72,7 +66,7 @@
         </label>
     </div>
     
-    {#await displayData}
+    {#await getAllPapers()}
         <p>Loading...</p>
     {:then data}    
         <div class="chart-container">
@@ -84,7 +78,7 @@
             subtitle="{selectedVenue} Publications by Year"
             >
             <BarY 
-                {data}
+                data={data.filter((d) => d.venue == selectedVenue && d.year >= minYear)}
                 x="year"
                 y="count"
                 fillOpacity=0.1
@@ -92,7 +86,7 @@
             />
             {#snippet overlay()}
                 <HTMLTooltip
-                    {data}
+                    data={data.filter((d) => d.venue == selectedVenue && d.year >= minYear)}
                     x="year"
                     y="count">
                     {#snippet children({ datum })}

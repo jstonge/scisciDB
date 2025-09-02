@@ -48,16 +48,20 @@
 
     {#await getFieldsStem()}
         <p>Loading...</p>
-    {:then data}    
-        <Streamgraph {data} {isNormalized}/>
+    {:then data}  
+        <div class="chart-container">
+            <Streamgraph {data} {isNormalized}/>
+        </div>
     {/await}
     
     <p>When normalized, we note that medicine takes up much of the shares, which make sense as pubmed is a big open source datasets integrated in the database. Interestingly, we can see the extra space medicine takes around 2020, which is probably all the biomedical research that has been happening around COVID-19. We can see the rise of computer science. And now we do the same for the social sciences and humanities:</p>
 
     {#await getFieldsSocSci()}
         <p>Loading...</p>
-    {:then data}    
-        <Streamgraph {data} {isNormalized}/>
+    {:then data}   
+        <div class="chart-container">
+            <Streamgraph {data} {isNormalized}/>
+        </div>
     {/await}
 
     <p>Here we will take the data with a grain of salt, as it could be something with how we wrangled the data (we are taking the first field of study in a list of entries) or perhaps something with the semantic scholar classifier, but what is up with Psychology after 2020?! Sociology grew almost to a 25% of papers in that categorization. The Art was also fairly constant, until COVID-19 hit. But again, I would take all that with a big grain of salt. The important bit here is to have a broad overview of what field of studies are biasing the semantic scholar dataset, nothing less, nothing more.</p>
@@ -101,7 +105,7 @@
                 x={{tickRotate: 40, label: ""}}
                 y={{grid: true}}
                 height={300}
-                marginRight={40}
+                marginRight={20}
                 subtitle="{selectedVenue} Publications by Year"
             >
             <BarY 
@@ -162,11 +166,12 @@
     display: flex;
     gap: 2rem;
     align-items: center;
-    background: #ccc;
     padding: 1rem;
     border-radius: 8px;
     margin: 1rem 0;
     flex-wrap: wrap;
+    max-width: fit-content;
+    margin-inline: auto;
   }
   
   .controls label {
@@ -183,6 +188,8 @@
   
   .chart-container {
     width: 100%;
-    padding: 1rem 0;
+    border-radius: 15px; 
+    padding: 0.5rem 0.5rem 0.5rem 0.5rem;
+    background-color: #e5e2e2;
   }
 </style>

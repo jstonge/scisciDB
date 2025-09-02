@@ -1,14 +1,18 @@
 <!-- +page.svelte -->
 <script>
-  import { getVenues, getFilteredPapers } from './data.remote.js';
-  import { Plot, BarY, HTMLTooltip } from 'svelteplot';
+    import { getVenues, getAllPapers } from './data.remote.js';
+    import { Plot, BarY, HTMLTooltip } from 'svelteplot';
+    
+    let selectedVenue = $state('Nature');
+    let minYear = $state(1970);
   
-  let selectedVenue = $state('Nature');
-  let minYear = $state(1970);
-  
-  // Get filtered data reactively
-  let displayData = $derived(getFilteredPapers({ venue: selectedVenue, minYear }));
-</script>
+    // Get filtered data reactively
+    //   let displayData = $derived(getFilteredPapers({ venue: selectedVenue, minYear }));
+    let displayData = $derived(async () => {
+        const allPapers = await getAllPapers();
+        return allPapers.filter(p => p.venue === selectedVenue && p.year >= minYear);
+    });
+    </script>
 
 <div class="dashboard">
     <h1>A whirldwind tour of <a href="https://github.com/jstonge/scisciDB">SciSciDB</a></h1>

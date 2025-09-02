@@ -248,7 +248,6 @@ def download_openalex(dataset_name: str, clean_slate: bool = False) -> Path:
     # TODO: Implement OpenAlex download
     raise NotImplementedError("OpenAlex download not yet implemented")
 
-
 def download_dataset(source: str, dataset_name: str, clean_slate: bool = False) -> Path:
     """
     Download dataset from specified source
@@ -307,15 +306,6 @@ def get_dataset_info(dataset_name: str) -> dict:
         "sample_files": [f.name for f in (json_files + gz_files)[:5]]
     }
 
-# Convenience functions
-def download_papers(clean_slate: bool = False) -> Path:
-    """Download papers dataset from Semantic Scholar"""
-    return download_semantic_scholar("papers", clean_slate)
 
-def download_authors(clean_slate: bool = False) -> Path:
-    """Download authors dataset from Semantic Scholar"""
-    return download_semantic_scholar("authors", clean_slate)
-
-def download_venues(clean_slate: bool = False) -> Path:
     """Download publication-venues dataset from Semantic Scholar"""
     return download_semantic_scholar("publication-venues", clean_slate)

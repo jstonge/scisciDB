@@ -182,6 +182,10 @@ def sync_fields_to_sqlite(data: List[Dict[str, Any]], sqlite_path: str, table_na
 # GROUP COUNTS #
 ################
 
+# def find_parsed_text():
+#     s2orc_collection = db_manager.get_collection("s2orc_v2")
+#     s2orc_corpusid = list(s2orc_collection.aggregate([{"$project": {"corpusid": 1}}]))
+
 def get_venue_year_counts(collection_name: str, venues: List[str] = None) -> List[Dict[str, Any]]:
     """Get exact paper counts by venue and year"""
     collection = db_manager.get_collection(collection_name)

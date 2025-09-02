@@ -1,5 +1,5 @@
 """
-Minimal MongoDB connection for venue group counts
+Minimal utilities for the MongoDB
 """
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
@@ -116,6 +116,98 @@ def get_collection_count(collection_name: str) -> int:
     collection = db_manager.get_collection(collection_name)
     return collection.estimated_document_count()
 
+def get_s2fieldsofstudy_year_counts(collection_name: str, fields: List[str] = None) -> List[Dict[str, Any]]:
+    """Get exact paper counts by S2 field of study and year (s2-fos-model only)"""
+    collection = db_manager.get_collection(collection_name)
+    
+    pipeline = [
+        {"$match": {
+            "s2FieldsOfStudy": {"$exists": True, "$ne": None, "$not": {"$size": 0}},
+            "year": {"$exists": True, "$ne": None, "$gte": 1900, "$lte": 2030}
+        }},
+        {"$unwind": "$s2FieldsOfStudy"},
+        {"$match": {"s2FieldsOfStudy.source": "s2-fos-model"}},  # Only s2-fos-model entries
+        {"$addFields": {
+            "field": "$s2FieldsOfStudy.category"
+        }}
+    ]
+    
+    # Filter by specific fields if provided
+    if fields:
+        pipeline.append({"$match": {"field": {"$in": fields}}})
+    
+    pipeline.extend([
+        {"$group": {
+            "_id": {"field": "$field", "year": "$year"},
+            "count": {"$sum": 1}
+        }},
+        {"$project": {
+            "_id": 0,
+            "field": "$_id.field",
+            "year": "$_id.year", 
+            "count": 1
+        }},
+        {"$sort": {"field": 1, "year": 1}}
+    ])
+    
+    return list(collection.aggregate(pipeline))
+
+def create_performance_indexes():
+    """Create indexes to accelerate common queries"""
+    if not db_manager.connect():
+        print("Failed to connect to database")
+        return
+    
+    print("Creating performance indexes...")
+    
+    papers_collection = db_manager.get_collection("papers")
+    
+    try:
+        # Index for venue + year queries
+        papers_collection.create_index([("venue", 1), ("year", 1)])
+        print("  ✓ Created papers.venue + year index")
+        
+        # Index for year queries
+        papers_collection.create_index([("year", 1)])
+        print("  ✓ Created papers.year index")
+        
+        # Index for venue queries
+        papers_collection.create_index([("venue", 1)])
+        print("  ✓ Created papers.venue index")
+        
+        # Index for s2FieldsOfStudy queries (compound)
+        papers_collection.create_index([("s2FieldsOfStudy.source", 1), ("s2FieldsOfStudy.category", 1), ("year", 1)])
+        print("  ✓ Created papers.s2FieldsOfStudy compound index")
+        
+        # Index just for s2FieldsOfStudy array
+        papers_collection.create_index([("s2FieldsOfStudy", 1)])
+        print("  ✓ Created papers.s2FieldsOfStudy array index")
+        
+    except Exception as e:
+        print(f"  → Error creating indexes: {e}")
+    
+    print("✓ Performance indexes created!")
+
+def list_indexes(collection_name: str):
+    """List all indexes on a collection"""
+    collection = db_manager.get_collection(collection_name)
+    indexes = collection.list_indexes()
+    
+    print(f"Indexes on '{collection_name}' collection:")
+    for idx in indexes:
+        name = idx.get('name', 'Unknown')
+        keys = idx.get('key', {})
+        print(f"  - {name}: {keys}")
+
+def drop_index(collection_name: str, index_name: str):
+    """Drop a specific index from a collection"""
+    collection = db_manager.get_collection(collection_name)
+    try:
+        collection.drop_index(index_name)
+        print(f"✓ Dropped index '{index_name}' from '{collection_name}'")
+    except Exception as e:
+        print(f"Failed to drop index: {e}")
+ 
 def list_collections() -> List[str]:
     """List all collections in database"""
     if not db_manager._connected:

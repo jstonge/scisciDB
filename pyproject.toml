@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "csvkit>=2.1.0",
     "ipython>=9.5.0",
     "jsonlines>=4.0.0",
     "jupyter>=1.1.1",

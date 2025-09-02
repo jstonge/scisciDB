@@ -52,3 +52,6 @@ creds.py
 .cache/
 slurm-*
 tmp/
+backend/sync_venues_from_csv.sh
+.gitignore
+backend/venues.csv

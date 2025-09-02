@@ -1,38 +1,73 @@
 <!-- +page.svelte -->
 <script>
-  import { getVenues, getAllPapers } from './data.remote.js';
+    import { getVenues, getAllPapers, getFieldsSocSci, getFieldsStem, getAllFieldsAgg } from './data.remote.js';
     import { Plot, BarY, HTMLTooltip } from 'svelteplot';
-    
+    import Slider from '$lib/components/Slider.svelte'
+    import Select from '$lib/components/Select.svelte'
+    import Toggle from '$lib/components/Toggle.svelte'
+	import Streamgraph from '$lib/components/Streamgraph.svelte';
+	import FosBarChart from '$lib/components/FosBarChart.svelte';
+
     let selectedVenue = $state('Nature');
     let minYear = $state(1970);
-  
-    </script>
+    let isNormalized = $state(false);
+</script>
 
 <div class="dashboard">
-    <h1>A whirldwind tour of <a href="https://github.com/jstonge/scisciDB">SciSciDB</a></h1>
     
-    <p>We introduce useful snapshots of databases are hosted at the University of Vermont, namely <a href="https://api.semanticscholar.org/api-docs/datasets">semantic scholar</a>, ... (more to come). Most snapshots are supplement to their API, which are awesome. Here we provide information specific to projects at the <a href="https://github.com/Vermont-Complex-Systems/">Vermont Complex Systems Institute</a>.</p>
+    <h1>A whirldwind tour of <a href="https://github.com/jstonge/scisciDB">SciSciDB</a> (WIP)</h1>
+    
+    <p>We introduce useful snapshots of databases are hosted at the University of Vermont, namely <a href="https://api.semanticscholar.org/api-docs/datasets">semantic scholar</a>, ... (more to come). Here we provide information specific to projects at the <a href="https://github.com/Vermont-Complex-Systems/">Vermont Complex Systems Institute</a>.</p>
+
+    <p style="color: red;" >[!TODO: Add TOC in the right margin when on desktop, but collapsible from the top on mobile]</p>
 
     <h2>The <a href="https://api.semanticscholar.org/api-docs/datasets">Semantic Scholar</a> snapshot</h2>
 
-    <p>This database is particularly useful in that it provides fully parsed text for over 16M papers, their embedding using AllenAI's <a href="https://huggingface.co/allenai/specter2">Specter2</a> embeddings, and the 2.4B citation graph that goes with all the papers. They also provide a collection of open-source methods tools on top of the data, such as their custom <a href="https://github.com/allenai/s2_fos">field of study</a>  classifier, a spaCy pipeline for medical documents (<a href="https://github.com/allenai/scispacy">scispacy</a>), and many more.</p>
+    <p>The Semantic Scholar database provides metadata for over 200M texts, fully parsed text for over 16M papers, their embedding using AllenAI's <a href="https://huggingface.co/allenai/specter2">Specter2</a> embeddings, and the 2.4B citation graph that goes with all the papers. They also provide a collection of open-source methods tools on top of the data, such as their custom <a href="https://github.com/allenai/s2_fos">field of study</a>  classifier, a spaCy pipeline for medical documents (<a href="https://github.com/allenai/scispacy">scispacy</a>), and many more.</p>
 
-    <h3>Examining field of studies</h3>
+    <h3>Examining field of studies (fos)</h3>
 
-    <p>We start by looking at the number of papers by field of studies to know the bias in the database. We already know from the papers that computer science papers are heavily represented, by virtue of being more openly available, than, say, economics or information science. The question is more; how bad is it is.</p>
+    <p>We already know from the papers that computer science and medicine papers are heavily represented in the semantic scholar database, by virtue of being more openly available, than, say, economics or information science. The question is really: "how bad is it is". For the following plots, we use a 10M samples by fos for convenience.</p>
 
-    <p>Here is the macro perspective, looking at the counts of papers by field of studie</p>
+    <p>Here is the macro perspective, looking at the counts of papers by fos:</p>
 
-    <p>[INSERT BARCHART]</p>
+    {#await getAllFieldsAgg()}
+        <p>Loading...</p>
+    {:then data}    
+        <div class="chart-container">
+            <FosBarChart {data}/>
+        </div>
+    {/await}
 
-    <p>We now use a streamgraph to know the decomposition of fields of studies over time:</p>
 
-    <p>[INSERT STREAMGRAPH]</p>
+    <p>With streamgraph, it is always the same story; we have more field of studies than humans are able to distinguish colors. An easy workaground will be to categorize our field of studies between STEM++ (like Physics and Chemistry, but also including environmental science and even medicine and computer science) and the Social Sciences++ (including humanities, law, and the arts). We now use a streamgraph to know the decomposition of fields of studies over time of STEM++:</p>
+    
+    <div class="toggle-container">
+        <Toggle bind:isTrue={isNormalized}/>
+    </div>
+
+    {#await getFieldsStem()}
+        <p>Loading...</p>
+    {:then data}    
+        <Streamgraph {data} {isNormalized}/>
+    {/await}
+    
+    <p>And now we do the same for the social sciences and humanities:</p>
+
+    {#await getFieldsSocSci()}
+        <p>Loading...</p>
+    {:then data}    
+        <Streamgraph {data} {isNormalized}/>
+    {/await}
 
     <h3>Time series venues</h3>
     
-    <p>For a project, we wanted to know about the evolution of data sharing practices. We decided to sample the data by venue, as journal policies with respect to methods matter. Here we look at a time series by "top" venues, here simply defined by the venues' h5-index found on Google Scholar (we also use Google Scholar's subcategories of journals to classify papers).  We use color to indicate how many of available papers have been parsed out of all available papers in that venue.</p>
+    <p>For given project, we wanted to know about the evolution of data sharing practices. We decided to sample the data by venue, as journal policies with respect to methods matter. Here we look at a time series by "top" venues, here simply defined by the venues' h5-index found on Google Scholar (we also use Google Scholar's subcategories of journals to classify papers).  We use bullet bars to indicate how many of available papers have been parsed out of all available papers in that venue.</p>
     
+    <p style="color: red;" >[!TODO: add aggregated bar chart by subcategories of venues (see google scholar for the subcategories).]</p>
+
+    <p>You can explore the coverage of any specific venue below:</p>
+
     <!-- Controls -->
     <div class="controls">
         <label>
@@ -42,11 +77,7 @@
             <option>Loading venues...</option>
             </select>
         {:then venues}
-            <select bind:value={selectedVenue}>
-            {#each venues as venue}
-                <option value={venue}>{venue}</option>
-            {/each}
-            </select>
+            <Select bind:value={selectedVenue} options={venues}/>
         {:catch error}
             <select disabled>
             <option>Error loading venues</option>
@@ -56,13 +87,7 @@
         
         <label>
         From Year: {minYear}
-        <input 
-            type="range" 
-            bind:value={minYear}
-            min="1900"
-            max="2025"
-            step="1"
-        >
+        <Slider bind:value={minYear}/>
         </label>
     </div>
     
@@ -71,11 +96,11 @@
     {:then data}    
         <div class="chart-container">
             <Plot 
-            x={{tickRotate: 40, label: ""}}
-            y={{grid: true}}
-            height={300}
-            marginRight={40}
-            subtitle="{selectedVenue} Publications by Year"
+                x={{tickRotate: 40, label: ""}}
+                y={{grid: true}}
+                height={300}
+                marginRight={40}
+                subtitle="{selectedVenue} Publications by Year"
             >
             <BarY 
                 data={data.filter((d) => d.venue == selectedVenue && d.year >= minYear)}
@@ -100,26 +125,42 @@
         </div>
     {/await}
 
+    <p style="color: red;" >[!TODO: add bullet bars to show the extent to which available papers are parsed or not.]</p>
+
     <p>We start by looking at the number of papers by field of studies to know the bias in the database. We already know from the papers that computer science papers are heavily represented, by virtue of being more openly available, than, say, economics or information science. The question is more; how bad is it is.</p>
 </div>
 
 <style>
+    
   .dashboard {
+    border: 2px solid black; /* Sets a 2px solid black border */
     padding: 2rem;
+    background-color: #f5f5f5;
     max-width: 800px;
     margin: 0 auto;
   }
+  :global(html) {
+    background-color: #ccc;
+  }
 
   .dashboard p {
+    line-height: 1.3rem;
     font-size: 1.1rem;
     font-family: sans-serif;
   }
   
+  .toggle-container {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    max-width: fit-content;
+    margin-inline: auto;
+  }
+
   .controls {
     display: flex;
     gap: 2rem;
     align-items: center;
-    background: #f5f5f5;
+    background: #ccc;
     padding: 1rem;
     border-radius: 8px;
     margin: 1rem 0;

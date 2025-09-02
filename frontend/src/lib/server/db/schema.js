@@ -6,3 +6,9 @@ export const papers = sqliteTable('papers', {
   year: integer('year').notNull(),
   count: integer('count').notNull()
 });
+
+export const fields = sqliteTable('fields', {
+  field: text('field').notNull(),
+  year: integer('year').notNull(),
+  count: integer('count').notNull()
+});

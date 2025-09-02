@@ -36,6 +36,7 @@
 	},
 	"dependencies": {
 		"better-sqlite3": "^11.8.0",
+		"bits-ui": "^2.9.6",
 		"drizzle-orm": "^0.40.0",
 		"svelteplot": "^0.3.9",
 		"valibot": "^1.1.0"

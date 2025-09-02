@@ -43,10 +43,10 @@ def main():
     parser = argparse.ArgumentParser(description="Sync field of study counts to frontend")
     parser.add_argument("--db", default="../frontend/local.db", help="SQLite database path")
     parser.add_argument("--fields", nargs="*", help="Specific fields to sync")
-    parser.add_argument("--collection", default="papers", help="MongoDB collection")
     parser.add_argument("--dry-run", action="store_true", help="Show data preview only, don't sync")
     parser.add_argument("--detail", help="Show year-by-year breakdown for specific field")
     parser.add_argument("--table", default="fields", help="SQLite table name")
+    parser.add_argument("--sample", type=int, help="Test with sample size (for performance testing)")
     
     args = parser.parse_args()
     
@@ -54,8 +54,8 @@ def main():
         print("Failed to connect to MongoDB")
         sys.exit(1)
     
-    print(f"Fetching field of study counts from {args.collection}...")
-    data = get_s2fieldsofstudy_year_counts(args.collection, fields=args.fields)
+    print(f"Fetching field of study counts from papers...")
+    data = get_s2fieldsofstudy_year_counts(fields=args.fields, sample_size=args.sample)
     
     if not data:
         print("No data found!")

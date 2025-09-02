@@ -50,7 +50,7 @@
         <Streamgraph {data} {isNormalized}/>
     {/await}
     
-    And now we do the same for the social sciences and humanities:
+    <p>And now we do the same for the social sciences and humanities:</p>
 
     {#await getFieldsSocSci()}
         <p>Loading...</p>

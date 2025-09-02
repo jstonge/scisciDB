@@ -1,7 +1,7 @@
 // frontend/src/routes/data.remote.js
 import { prerender } from '$app/server';
 import { db } from "$lib/server/db/index.js"
-import { asc, gte, sum, eq, and, or } from 'drizzle-orm'
+import { asc, gte, sum, eq, and, or, lte } from 'drizzle-orm'
 import { papers, fields } from '$lib/server/db/schema.js'
 
 // Get all unique venues
@@ -21,6 +21,7 @@ export const getFieldsStem = prerender(async () => {
   .where(
     and(
       gte(fields.year, 1950),
+      lte(fields.year, 2024),
       or(
         eq(fields.field, "Computer Science"),
         eq(fields.field, "Medicine"),
@@ -45,6 +46,7 @@ export const getFieldsSocSci = prerender(async () => {
         .where(
           and(
             gte(fields.year, 1950),
+            lte(fields.year, 2024),
             or(
               eq(fields.field, "History"),
               eq(fields.field, "Linguistics"),

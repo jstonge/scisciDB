@@ -197,18 +197,41 @@ def sync_fields_to_sqlite(data: List[Dict[str, Any]], sqlite_path: str, table_na
 #     s2orc_corpusid = list(s2orc_collection.aggregate([{"$project": {"corpusid": 1}}]))
 
 def get_venue_year_counts(collection_name: str, venues: List[str] = None) -> List[Dict[str, Any]]:
-    """Get exact paper counts by venue and year"""
+    """Get exact paper counts by venue and year, filling missing years with 0"""
     collection = db_manager.get_collection(collection_name)
     
-    # Match conditions
-    match_conditions = {
-        "venue": {"$exists": True, "$ne": None},
-        "year": {"$exists": True, "$ne": None, "$gte": 1900, "$lte": 2030}
-    }
+    # Get unique venues if not provided
+    if not venues:
+        venues = collection.distinct("venue", {
+            "venue": {"$exists": True, "$ne": None}
+        })
     
-    # Filter by specific venues if provided
-    if venues:
-        match_conditions["venue"] = {"$in": venues}
+    # Get min and max years for the given venues
+    year_range_pipeline = [
+        {"$match": {
+            "venue": {"$exists": True, "$ne": None, "$in": venues},
+            "year": {"$exists": True, "$ne": None, "$gte": 1900, "$lte": 2030}
+        }},
+        {"$group": {
+            "_id": None,
+            "min_year": {"$min": "$year"},
+            "max_year": {"$max": "$year"}
+        }}
+    ]
+    
+    year_range_result = list(collection.aggregate(year_range_pipeline))
+    
+    if not year_range_result:
+        return []  # No data found
+    
+    min_year = year_range_result[0]["min_year"]
+    max_year = year_range_result[0]["max_year"]
+    
+    # Get actual counts using your existing pipeline
+    match_conditions = {
+        "venue": {"$exists": True, "$ne": None, "$in": venues},
+        "year": {"$exists": True, "$ne": None, "$gte": min_year, "$lte": max_year}
+    }
     
     pipeline = [
         {"$match": match_conditions},
@@ -221,11 +244,30 @@ def get_venue_year_counts(collection_name: str, venues: List[str] = None) -> Lis
             "venue": "$_id.venue",
             "year": "$_id.year", 
             "count": 1
-        }},
-        {"$sort": {"venue": 1, "year": 1}}
+        }}
     ]
     
-    return list(collection.aggregate(pipeline))
+    actual_counts = list(collection.aggregate(pipeline))
+    
+    # Create complete grid
+    from collections import defaultdict
+    counts_by_venue_year = defaultdict(int)
+    
+    # Fill in actual counts
+    for item in actual_counts:
+        counts_by_venue_year[(item['venue'], item['year'])] = item['count']
+    
+    # Generate complete dataset with dynamic year range
+    result = []
+    for venue in sorted(venues):
+        for year in range(min_year, max_year + 1):
+            result.append({
+                "venue": venue,
+                "year": year,
+                "count": counts_by_venue_year[(venue, year)]
+            })
+    
+    return result
 
 def get_s2fieldsofstudy_year_counts_fast(fields: List[str] = None) -> List[Dict[str, Any]]:
     """Fast version using primary_s2field string"""

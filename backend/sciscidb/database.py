@@ -65,6 +65,16 @@ def get_collection_count(collection_name: str) -> int:
     collection = db_manager.get_collection(collection_name)
     return collection.estimated_document_count()
 
+def count_s2fieldsofstudy() -> int:
+    """Get estimated document count for collection"""
+    collection = db_manager.get_collection("papers")
+    return collection.count_documents({
+            "s2fieldsofstudy": {
+                "$exists": True, 
+                "$ne": None
+            }
+        })
+
 #####################
 # UPDATE COLLECTION #
 #####################

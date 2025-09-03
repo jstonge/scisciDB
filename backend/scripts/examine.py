@@ -9,11 +9,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from sciscidb.database import db_manager, find_one_sample, list_collections, get_collection_count
+from sciscidb.database import db_manager, find_one_sample, count_s2fieldsofstudy, list_collections, get_collection_count
 
 def main():
     parser = argparse.ArgumentParser(description="Examine MongoDB data")
-    parser.add_argument("action", choices=["sample", "collections", "count"], help="Action to perform")
+    parser.add_argument("action", choices=["sample", "collections", "count", "count_fos"], help="Action to perform")
     parser.add_argument("--collection", help="Collection name (required for sample and count)")
     
     args = parser.parse_args()
@@ -47,6 +47,10 @@ def main():
         
         count = get_collection_count(args.collection)
         print(f"Estimated document count for '{args.collection}': {count:,}")
+    
+    elif args.action == "count_fos":
+        count = count_s2fieldsofstudy()
+        print(f"Count: {count}")
 
 if __name__ == "__main__":
     main()

@@ -20,7 +20,7 @@
     
     <h1>A whirldwind tour of <a href="https://github.com/jstonge/scisciDB">SciSciDB</a> (WIP)</h1>
     
-    <p>We introduce useful snapshots of databases are hosted at the University of Vermont, namely <a href="https://api.semanticscholar.org/api-docs/datasets">semantic scholar</a>, ... (more to come). Here we provide information specific to projects at the <a href="https://github.com/Vermont-Complex-Systems/">Vermont Complex Systems Institute</a>.</p>
+    <p>We introduce useful snapshots of databases that are hosted at the University of Vermont, namely <a href="https://api.semanticscholar.org/api-docs/datasets">Semantic Scholar</a>, ... (more to come, <a href="https://docs.openalex.org/download-all-data/openalex-snapshot">OpenAlex</a> is next). Here we provide visualizations that we found missing from current APIs and have been helpful to a number of projects at the <a href="https://github.com/Vermont-Complex-Systems/">Vermont Complex Systems Institute</a>.</p>
 
     <InsightBox type="warning">
         <strong>TODO:</strong> Add TOC in the right margin when on desktop, but collapsible from the top on mobile
@@ -28,7 +28,7 @@
     
     <h3>Introduction</h3>
 
-    <p>The Semantic Scholar database provides metadata for over 200M texts from other aggregators such as PubMed, HAL, or the arXiv but also publishing partners such as ACM and the ACL (see <a href="https://www.semanticscholar.org/about/publishers">full list</a>). Although the raw number is impressive, Semantic Scholar distinguishes itself by open-sourcing a number of their natural language processing tools.</p>
+    <p>The <a href="https://api.semanticscholar.org/api-docs/datasets">Semantic Scholar snapshot</a> provides metadata for over 200M texts from other aggregators such as PubMed, HAL, or the arXiv but also publishing partners such as ACM and the ACL (see <a href="https://www.semanticscholar.org/about/publishers">full list</a>). Although the raw number is impressive, Semantic Scholar distinguishes itself by open-sourcing a number of their natural language processing tools.</p>
 
     <div class="content-wrapper">
         <div class="text-content">

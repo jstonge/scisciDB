@@ -9,7 +9,7 @@
 	import Streamgraph from '$lib/components/Streamgraph.svelte';
 	import FosBarChart from '$lib/components/FosBarChart.svelte';
     import InsightBox from '$lib/components/InsightBox.svelte';
-    import Github from "$lib/components/Github.svelte";
+    import Header from "$lib/components/Header.svelte";
 
     let selectedVenue = $state('Nature');
     let selectedOffset = $state('wiggle');
@@ -19,9 +19,7 @@
 </script>
 
 <div class="dashboard">
-    <Github />
-
-    <h1>A whirldwind tour of <a href="https://github.com/jstonge/scisciDB">SciSciDB</a> (WIP)</h1>
+    <Header />
     
     <p>We introduce useful snapshots of databases that are hosted at the University of Vermont, namely <a href="https://api.semanticscholar.org/api-docs/datasets">Semantic Scholar</a>, ... (more to come, <a href="https://docs.openalex.org/download-all-data/openalex-snapshot">OpenAlex</a> is next). Here we provide visualizations that we found missing from current APIs and have been helpful to a number of projects at the <a href="https://github.com/Vermont-Complex-Systems/">Vermont Complex Systems Institute</a>.</p>
 

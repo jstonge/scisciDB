@@ -41,6 +41,7 @@
         margin: 16px 0;
         display: flex;
         gap: 8px;
+        margin-bottom: 2rem;
     }
 
     .icon-wrapper {
@@ -64,6 +65,18 @@
     .insight-icon {
         flex-shrink: 0;
         margin-top: 2px; /* Align with text baseline */
+    }
+
+
+    /* Style images within the insight box */
+    .insight-box :global(img) {
+        max-width: 100%;
+        height: auto;
+        border-radius: 4px;
+        margin-top: 12px;
+        display: block;
+        border: 1px solid #ccc;
+        box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.2);
     }
 
     /* Variants */

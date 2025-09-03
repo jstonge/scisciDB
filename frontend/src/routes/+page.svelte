@@ -99,6 +99,12 @@
 
     <p>One last thing to note is that by looking at the relative number of papers, we can see that STEM++ has around 3 times more papers than the Social Sciences++ category. It is not nothing, but any kind of analysis making claims about the whole of science based on the Semantic Scholar dataset should control for that fact. And this is also for papers with available FOS, which means the papers at least have an abstract. We might expect that STEM++ is even more represented when analyzing the S2ORC data.</p>
 
+     <InsightBox type="tip">
+        <p><strong>Tip:</strong> At the moment, we only talk about the FOS as provided in the Semantic Scholar database. But one could decompose those field of studies into topics, examining what is conisedered, say, "Biology" from a distance. We have a observable notebook prototype that does exactly that: <a href="https://observablehq.com/@jstonge/how-do-fos-evolve">here</a>. The challenge here is that to do so, we needed to integrate the openAlex database with that of Semantic Scholar, which was a bit messy. We might get back to it if there is interest.</p>
+
+        <img src='{base}/prototype.jpg' alt="some alt text" width="700"/>
+    </InsightBox>
+
     <h3>Time series venues (Very WIP)</h3>
 
     <p>For a given project, we wanted to know about the evolution of data sharing practices. We decided to sample the data by venue, as journal policies with respect to methods matter. Here we look at a time series by "top" venues, here simply defined by the venues' h5-index found on Google Scholar (we also use Google Scholar's subcategories of journals to classify papers). We use bullet charts to indicate how many available papers have been parsed out of all available papers in that venue.</p>
@@ -107,7 +113,6 @@
         <strong>TODO:</strong> Add aggregated bar chart by subcategories of venues (see google scholar for the subcategories).
     </InsightBox>
     
-
     <p>You can explore the coverage of any specific venue below:</p>
     
     {#await getAllPapers()}

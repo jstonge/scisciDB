@@ -1,35 +1,55 @@
 <!-- +page.svelte -->
 <script>
+    import { base } from "$app/paths";
+    
     import { getVenues, getAllPapers, getFieldsSocSci, getFieldsStem, getAllFieldsAgg } from './data.remote.js';
     import { Plot, BarY, HTMLTooltip } from 'svelteplot';
     import Slider from '$lib/components/Slider.svelte'
     import Select from '$lib/components/Select.svelte'
-    import Toggle from '$lib/components/Toggle.svelte'
 	import Streamgraph from '$lib/components/Streamgraph.svelte';
 	import FosBarChart from '$lib/components/FosBarChart.svelte';
+    import InsightBox from '$lib/components/InsightBox.svelte';
+    import Header from "$lib/components/Header.svelte";
 
     let selectedVenue = $state('Nature');
+    let selectedOffset = $state('wiggle');
     let minYear = $state(1970);
-    let isNormalized = $state(false);
+    let clicked = $state();
+
 </script>
 
 <div class="dashboard">
+    <Header />
     
-    <h1>A whirldwind tour of <a href="https://github.com/jstonge/scisciDB">SciSciDB</a> (WIP)</h1>
+    <p>We introduce useful snapshots of databases that are hosted at the University of Vermont, namely <a href="https://api.semanticscholar.org/api-docs/datasets">Semantic Scholar</a>, ... (more to come, <a href="https://docs.openalex.org/download-all-data/openalex-snapshot">OpenAlex</a> is next). Here we provide visualizations that we found missing from current APIs and have been helpful to a number of projects at the <a href="https://github.com/Vermont-Complex-Systems/">Vermont Complex Systems Institute</a>.</p>
+
+    <InsightBox type="warning">
+        <strong>TODO:</strong> Add TOC in the right margin when on desktop, but collapsible from the top on mobile
+    </InsightBox>
     
-    <p>We introduce useful snapshots of databases are hosted at the University of Vermont, namely <a href="https://api.semanticscholar.org/api-docs/datasets">semantic scholar</a>, ... (more to come). Here we provide information specific to projects at the <a href="https://github.com/Vermont-Complex-Systems/">Vermont Complex Systems Institute</a>.</p>
+    <h3>Introduction</h3>
 
-    <p style="color: red;" >[!TODO: Add TOC in the right margin when on desktop, but collapsible from the top on mobile]</p>
+    <p>The <a href="https://api.semanticscholar.org/api-docs/datasets">Semantic Scholar snapshot</a> provides metadata for over 200M texts from other aggregators such as PubMed, HAL, or the arXiv but also publishing partners such as ACM and the ACL (see <a href="https://www.semanticscholar.org/about/publishers">full list</a>). Although the raw number is impressive, Semantic Scholar distinguishes itself by open-sourcing a number of their natural language processing tools.</p>
 
-    <h2>The <a href="https://api.semanticscholar.org/api-docs/datasets">Semantic Scholar</a> snapshot</h2>
+    <div class="content-wrapper">
+        <div class="text-content">
+            <p>As part of their snapshot, they provide 16M parsed texts, called the <a href="github.com/allenai/s2orc">s2orc</a> collection, facilitating the creation of downstream applications such as <a href="https://www.connectedpapers.com/">Connected Papers</a>. Their original parsing scheme built on top of Grobid was made available on <a href="https://github.com/allenai/s2orc-doc2json">GitHub</a>. From that parsing, they extract a 2.4B citation graph that connects and contextualizes all that information.</p>
+            <p>They provide useful representations of the texts as well, such as the <a href="https://huggingface.co/allenai/specter2">Specter2</a> embeddings for downstream tasks such as classification or topic modeling using density-based clustering. What I like about the Specter2 embedding is that it takes into account not only semantic similarity between texts, but also the relationships between texts. That is, two texts can be similar, but live in different reference spaces, which is a key feature of scientific work.</p> 
+            <p>They also provide other tools on top of the data, such as their custom <a href="https://github.com/allenai/s2_fos">field of study</a> classifier, a spaCy pipeline for medical documents (<a href="https://github.com/allenai/scispacy">scispacy</a>), a recent toolkit for converting PDFs into clean and readable plain text (<a href="https://github.com/allenai/olmocr">OLMOCR</a>), and many more.</p>
+        </div>
+        <figure class="image-container">
+            <img src='{base}/paper_layers.jpg' alt="some alt text" width="300"/>
+            <figcaption><a href="https://github.com/allenai/papermage">PaperMage</a> view of the different layers in a paper.</figcaption>
+        </figure>
+    </div>
 
-    <p>The Semantic Scholar database provides metadata for over 200M texts, fully parsed text for over 16M papers, their embedding using AllenAI's <a href="https://huggingface.co/allenai/specter2">Specter2</a> embeddings, and the 2.4B citation graph that goes with all the papers. They also provide a collection of open-source methods tools on top of the data, such as their custom <a href="https://github.com/allenai/s2_fos">field of study</a>  classifier, a spaCy pipeline for medical documents (<a href="https://github.com/allenai/scispacy">scispacy</a>), and many more.</p>
+    <p>Practically, this means that the Semantic Scholar dataset provides researchers direct access to popular aggregators (arXiv, pubmed) and many more, some of which already having content parsed down to the paragraph level. This is tremendously helpful. If researchers want to expand their analysis beyond already parsed text, they can use AllenAI's open-source toolkits to do so. </p>
 
-    <h3>Examining field of studies (fos)</h3>
+    <h3>Examining fields of study (FOS)</h3>
 
-    <p>We already know from the papers that computer science and medicine papers are heavily represented in the semantic scholar database, by virtue of being more openly available, than, say, economics or information science. The question is really: "how bad is it is". For the following plots, we use a 10M samples by fos for convenience.</p>
+    <p>We already know from the papers that computer science and medicine papers are heavily represented in the Semantic Scholar database, by virtue of being more openly available than, say, economics or information science. The question is really: "how bad is it?" For the following plots, we use a 10M sample by FOS for convenience. Note that out of the 228M papers, around 148M papers have at least one associated field of study.</p>
 
-    <p>Here is the macro perspective, looking at the counts of papers by fos:</p>
+    <p>Here is the macro perspective, looking at the counts of papers by FOS:</p>
 
     {#await getAllFieldsAgg()}
         <p>Loading...</p>
@@ -39,63 +59,61 @@
         </div>
     {/await}
 
-
-    <p>With streamgraph, it is always the same story; we have more field of studies than humans are able to distinguish colors. An easy workaground will be to categorize our field of studies between STEM++ (like Physics and Chemistry, but also including environmental science and even medicine and computer science) and the Social Sciences++ (including humanities, law, and the arts). We now use a streamgraph to know the decomposition of fields of studies over time of STEM++:</p>
+    <p>We next show the evolution of fields of study using a streamgraph. One issue is that we have more fields of study than humans are able to distinguish colors for. An easy workaround is to categorize our fields of study between STEM++ (like Physics and Chemistry, but also including environmental science and even medicine and computer science) and the Social Sciences++ (including humanities, law, and the arts). We now use a streamgraph to show the decomposition of fields of study over time for STEM++:</p>
     
-    <div class="toggle-container">
-        <Toggle bind:isTrue={isNormalized}/>
-    </div>
 
     {#await getFieldsStem()}
         <p>Loading...</p>
     {:then data}  
         <div class="chart-container">
-            <Streamgraph {data} {isNormalized}/>
+            <Streamgraph {data} offset={selectedOffset} {clicked}/>
         </div>
     {/await}
+
+    <div class="select-container">
+        <Select bind:value={selectedOffset} options={['wiggle', 'normalize', 'none']}/>
+    </div>
     
-    <p>When normalized, we note that medicine takes up much of the shares, which make sense as pubmed is a big open source datasets integrated in the database. Interestingly, we can see the extra space medicine takes around 2020, which is probably all the biomedical research that has been happening around COVID-19. We can see the rise of computer science. And now we do the same for the social sciences and humanities:</p>
+    <p>When unnormalized, we can see the explosion of papers in different FOS, a trend that is acellerating in the 2000s. Note that we are currently using the <b>2025-08-19</b> release, which should include data up to very recently. We are still unclear whether the number of papers drastically shrink after 2020 or it is simply an artifact from the data pipeline. One hypothesis is that the Microsoft Academic Graph has been deprecated at the end of 2021, which was Microsoft undetaking of crawling scientific data at large. Maybe Semantic Scholar is somewhat less aggressive in their crawling, which would be aligned with their mission of providing high-quality data over quantity.</p>
+    <p>When normalized, we note that medicine takes up much of the shares, which make sense as pubmed is a big open source datasets integrated in the database. Interestingly, we can see the extra space medicine takes around 2020, which is probably all the biomedical research that has been happening around COVID-19. We can see the rise of computer science.</p>
+
+    <InsightBox type="tip">
+        <p><strong>Tip:</strong> The streamgraph visualization requires a bit of practice to get right. Here we are using <em>inside-out</em> ordering, meaning the layers are arranged as to minimize the overall "wiggle" or movement of the baseline. When offset is set to null (also called silhouette mode), then all streams are stacked from a zero baseline upward. Click on a stream to make it more opaque, facilitating interpretation of the quantities.</p>
+    </InsightBox>
+
+    <p>We now move to the social sciences and humanities:</p>
 
     {#await getFieldsSocSci()}
         <p>Loading...</p>
     {:then data}   
         <div class="chart-container">
-            <Streamgraph {data} {isNormalized}/>
+            <Streamgraph {data} offset={selectedOffset}/>
         </div>
     {/await}
 
-    <p>Here we will take the data with a grain of salt, as it could be something with how we wrangled the data (we are taking the first field of study in a list of entries) or perhaps something with the semantic scholar classifier, but what is up with Psychology after 2020?! Sociology grew almost to a 25% of papers in that categorization. The Art was also fairly constant, until COVID-19 hit. But again, I would take all that with a big grain of salt. The important bit here is to have a broad overview of what field of studies are biasing the semantic scholar dataset, nothing less, nothing more.</p>
-
-    <h3>Time series venues</h3>
-    
-    <p>For given project, we wanted to know about the evolution of data sharing practices. We decided to sample the data by venue, as journal policies with respect to methods matter. Here we look at a time series by "top" venues, here simply defined by the venues' h5-index found on Google Scholar (we also use Google Scholar's subcategories of journals to classify papers).  We use bullet bars to indicate how many of available papers have been parsed out of all available papers in that venue.</p>
-    
-    <p style="color: red;" >[!TODO: add aggregated bar chart by subcategories of venues (see google scholar for the subcategories).]</p>
-
-    <p>You can explore the coverage of any specific venue below:</p>
-
-    <!-- Controls -->
-    <div class="controls">
-        <label>
-        Venue:
-        {#await getVenues()}
-            <select disabled>
-            <option>Loading venues...</option>
-            </select>
-        {:then venues}
-            <Select bind:value={selectedVenue} options={venues}/>
-        {:catch error}
-            <select disabled>
-            <option>Error loading venues</option>
-            </select>
-        {/await}
-        </label>
-        
-        <label>
-        From Year: {minYear}
-        <Slider bind:value={minYear}/>
-        </label>
+    <div class="select-container">
+        <Select bind:value={selectedOffset} options={['wiggle', 'normalize', 'none']}/>
     </div>
+
+    <p>Here we will take the data with a grain of salt, as it could be something with how we wrangled the data (we are taking the first field of study in a list of entries) or perhaps something with the Semantic Scholar classifier, but what is up with Psychology after 2020?! Sociology grew to almost 25% of papers in that categorization. The Arts were also fairly constant, until COVID-19 hit. But again, I would take all that with a big grain of salt. The important bit here is to have a broad overview of what fields of study are biasing the Semantic Scholar dataset, nothing less, nothing more.</p>
+
+    <p>One last thing to note is that by looking at the relative number of papers, we can see that STEM++ has around 3 times more papers than the Social Sciences++ category. It is not nothing, but any kind of analysis making claims about the whole of science based on the Semantic Scholar dataset should control for that fact. And this is also for papers with available FOS, which means the papers at least have an abstract. We might expect that STEM++ is even more represented when analyzing the S2ORC data.</p>
+
+     <InsightBox type="tip">
+        <p><strong>Tip:</strong> At the moment, we only talk about the FOS as provided in the Semantic Scholar database. But one could decompose those field of studies into topics, examining what is conisedered, say, "Biology" from a distance. We have a observable notebook prototype that does exactly that: <a href="https://observablehq.com/@jstonge/how-do-fos-evolve">here</a>. The challenge here is that to do so, we needed to integrate the openAlex database with that of Semantic Scholar, which was a bit messy. We might get back to it if there is interest.</p>
+
+        <img src='{base}/prototype.jpg' alt="some alt text" width="700"/>
+    </InsightBox>
+
+    <h3>Time series venues (Very WIP)</h3>
+
+    <p>For a given project, we wanted to know about the evolution of data sharing practices. We decided to sample the data by venue, as journal policies with respect to methods matter. Here we look at a time series by "top" venues, here simply defined by the venues' h5-index found on Google Scholar (we also use Google Scholar's subcategories of journals to classify papers). We use bullet charts to indicate how many available papers have been parsed out of all available papers in that venue.</p>
+
+    <InsightBox type="warning">
+        <strong>TODO:</strong> Add aggregated bar chart by subcategories of venues (see google scholar for the subcategories).
+    </InsightBox>
+    
+    <p>You can explore the coverage of any specific venue below:</p>
     
     {#await getAllPapers()}
         <p>Loading...</p>
@@ -131,9 +149,35 @@
         </div>
     {/await}
 
-    <p style="color: red;" >[!TODO: add bullet bars to show the extent to which available papers are parsed or not.]</p>
+        <!-- Controls -->
+    <div class="controls">
+        <label>
+        Venue:
+        {#await getVenues()}
+            <select disabled>
+            <option>Loading venues...</option>
+            </select>
+        {:then venues}
+            <Select bind:value={selectedVenue} options={venues}/>
+        {:catch error}
+            <select disabled>
+            <option>Error loading venues</option>
+            </select>
+        {/await}
+        </label>
+        
+        <label>
+        From Year: {minYear}
+        <Slider bind:value={minYear}/>
+        </label>
+    </div>
 
-    <p>We start by looking at the number of papers by field of studies to know the bias in the database. We already know from the papers that computer science papers are heavily represented, by virtue of being more openly available, than, say, economics or information science. The question is more; how bad is it is.</p>
+    <p>(We are still unconvinced about the usefulness of looking at the data venue by venue. We might facet by category, putting all barcharts within that category in a grid.)</p>
+    
+    <InsightBox type="warning">
+        <strong>TODO:</strong> Add bullet bars to show the extent to which available papers are parsed or not.
+    </InsightBox>
+
 </div>
 
 <style>
@@ -150,12 +194,12 @@
   }
 
   .dashboard p {
-    line-height: 1.3rem;
+    line-height: 1.4rem;
     font-size: 1.1rem;
     font-family: sans-serif;
   }
-  
-  .toggle-container {
+
+  .select-container {
     margin-top: 1rem;
     margin-bottom: 1rem;
     max-width: fit-content;
@@ -185,6 +229,7 @@
     border: 1px solid #ccc;
     border-radius: 4px;
   }
+ 
   
   .chart-container {
     width: 100%;
@@ -192,4 +237,49 @@
     padding: 0.5rem 0.5rem 0.5rem 0.5rem;
     background-color: #e5e2e2;
   }
+
+  .content-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 20px;
+}
+
+.text-content {
+    flex: 1 1 300px;
+    min-width: 0;
+}
+
+.image-container { 
+    flex: 0 0 auto;
+    max-width: fit-content;
+    border: 1px solid #ccc;
+    padding: 20px;
+    box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.2);
+    margin: 0;
+    margin-top: 3rem;
+}
+
+
+.image-container figcaption {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #666;
+    text-align: center;
+    font-style: italic;
+}
+
+      /* Center image when it wraps on smaller screens */
+    @media (max-width: 640px) {
+        .image-container {
+            align-self: center; /* This centers the image container */
+            order: 2; /* Move image below text */
+            margin-top: 0;
+            margin-bottom: 1rem;
+        }
+        
+        .text-content {
+            order: 1;
+        }
+    }
 </style>

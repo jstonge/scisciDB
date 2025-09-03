@@ -20,8 +20,7 @@ export const getFieldsStem = prerender(async () => {
   .from(fields)
   .where(
     and(
-      gte(fields.year, 1950),
-      lte(fields.year, 2024),
+      gte(fields.year, 1970),
       or(
         eq(fields.field, "Computer Science"),
         eq(fields.field, "Medicine"),
@@ -46,8 +45,7 @@ export const getFieldsSocSci = prerender(async () => {
         .from(fields)
         .where(
           and(
-            gte(fields.year, 1950),
-            lte(fields.year, 2024),
+            gte(fields.year, 1970),
             or(
               eq(fields.field, "History"),
               eq(fields.field, "Linguistics"),

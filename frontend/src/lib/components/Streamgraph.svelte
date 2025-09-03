@@ -1,13 +1,15 @@
 <script>
     import { Plot, AreaY, RuleY, Text } from 'svelteplot';
-    let {  data, isNormalized = $bindable()} = $props();
-    const text_labels = [{"y":0.25}, {"y":0.5}, {"y":0.75}];
+    let {  data, offset = $bindable(), clicked = $bindable()} = $props();
 </script>
 
 <Plot 
-    x={{ grid: isNormalized ? false : true}} 
-    y={{ axis: false }} 
-    marginLeft={15}
+    x={{ grid: offset === 'normalize' ? false : true}} 
+    y={{ 
+        axis: offset === 'none' ? 'left' : false, 
+        grid: offset === 'none' ? true : false 
+        }} 
+    marginLeft={offset === 'none' ? 40 : 15}
     marginRight={15} 
     color={{legend: true, scheme: "paired"}}
     >
@@ -19,14 +21,22 @@
             fill="field" 
             stroke="white"
             strokeOpacity=0.1
-            fillOpacity=0.8
             stack={{ 
                 order: 'inside-out',
-                offset: isNormalized ? 'normalize' : 'wiggle'
+                offset: offset
             }}
+            cursor="pointer"
+            opacity={{
+                scale: null,
+                value: (d) =>
+                        !clicked || clicked === d.field ? 0.8 : 0.3
+            }}
+            onclick={(event, d) => {
+                clicked = clicked === d.field ? null : d.field; // or d.data.field, depending on structure
+            }} 
         />
         <RuleY
-            data={isNormalized ? [0.25, 0.5, 0.75] : []}
+            data={offset === 'normalize' ? [0.25, 0.5, 0.75] : []}
             strokeDasharray="4,4"
             opacity={0.9} 
         />
@@ -35,12 +45,12 @@
                 frameAnchor="left"
                 dy={-5}
                 y={v}
-                text={isNormalized ? `${v*100}%` : ""}
+                text={offset === 'normalize' ? `${v*100}%` : ""}
                 fontSize={13} 
             />
         {/each}
         <RuleY
-        data={isNormalized ? [0.125, 0.375, 0.625, 0.875] : []}
+        data={offset === 'normalize' ? [0.125, 0.375, 0.625, 0.875] : []}
         strokeDasharray="2,2"
         opacity={0.3} 
         />

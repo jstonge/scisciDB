@@ -1,8 +1,13 @@
+<!-- +page.svelte -->
+<script>
+    import { base } from "$app/paths";
+  </script>
+
 <div class="header">
     <h1>A whirldwind tour of <a href="https://github.com/jstonge/scisciDB">SciSciDB</a> (WIP)</h1>
     <div class="header-links">
       <a href="https://vermont-complex-systems.github.io/complex-stories/" class="octopus-link" target="_blank" rel="noopener">
-        <img src="/octopus-swim-right.png" alt="Website" class="octopus-icon">
+        <img src="{base}/octopus-swim-right.png" alt="Website" class="octopus-icon">
       </a>
       
       <a href="https://github.com/jstonge/scisciDB" class="github-link" target="_blank" rel="noopener">

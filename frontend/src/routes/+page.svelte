@@ -1,12 +1,13 @@
 <!-- +page.svelte -->
 <script>
+    import { base } from "$app/paths";
+    
     import { getVenues, getAllPapers, getFieldsSocSci, getFieldsStem, getAllFieldsAgg } from './data.remote.js';
     import { Plot, BarY, HTMLTooltip } from 'svelteplot';
     import Slider from '$lib/components/Slider.svelte'
     import Select from '$lib/components/Select.svelte'
 	import Streamgraph from '$lib/components/Streamgraph.svelte';
 	import FosBarChart from '$lib/components/FosBarChart.svelte';
-
     import InsightBox from '$lib/components/InsightBox.svelte';
 
     let selectedVenue = $state('Nature');
@@ -37,7 +38,7 @@
             <p>They also provide other tools on top of the data, such as their custom <a href="https://github.com/allenai/s2_fos">field of study</a> classifier, a spaCy pipeline for medical documents (<a href="https://github.com/allenai/scispacy">scispacy</a>), a recent toolkit for converting PDFs into clean and readable plain text (<a href="https://github.com/allenai/olmocr">OLMOCR</a>), and many more.</p>
         </div>
         <figure class="image-container">
-            <img src='/paper_layers.jpg' alt="some alt text" width="300"/>
+            <img src='{base}/paper_layers.jpg' alt="some alt text" width="300"/>
             <figcaption><a href="https://github.com/allenai/papermage">PaperMage</a> view of the different layers in a paper.</figcaption>
         </figure>
     </div>

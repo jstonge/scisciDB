@@ -12,3 +12,8 @@ export const fields = sqliteTable('fields', {
   year: integer('year').notNull(),
   count: integer('count').notNull()
 });
+
+export const top_venue_google_scholar = sqliteTable('top_venue_google_scholar', {
+  venue: text('venue').notNull(),
+  field: text('field').notNull()
+});

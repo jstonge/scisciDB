@@ -2,8 +2,8 @@
 <script>
     import { base } from "$app/paths";
     
-    import { getVenues, getAllPapers, getFieldsSocSci, getFieldsStem, getAllFieldsAgg } from './data.remote.js';
-    import { Plot, BarY, HTMLTooltip } from 'svelteplot';
+    import { getFields, getAllPapers, getFieldsSocSci, getFieldsStem, getAllFieldsAgg } from './data.remote.js';
+    import { Plot, BarY, Text } from 'svelteplot';
     import Slider from '$lib/components/Slider.svelte'
     import Select from '$lib/components/Select.svelte'
 	import Streamgraph from '$lib/components/Streamgraph.svelte';
@@ -11,9 +11,9 @@
     import InsightBox from '$lib/components/InsightBox.svelte';
     import Header from "$lib/components/Header.svelte";
 
-    let selectedVenue = $state('Nature');
+    let selectedField = $state('Social Sciences');
     let selectedOffset = $state('wiggle');
-    let minYear = $state(1970);
+    let minYear = $state(2000);
     let clicked = $state();
 
 </script>
@@ -113,70 +113,85 @@
         <strong>TODO:</strong> Add aggregated bar chart by subcategories of venues (see google scholar for the subcategories).
     </InsightBox>
     
-    <p>You can explore the coverage of any specific venue below:</p>
+    <p>You can explore the coverage of any specific field below:</p>
+    
     
     {#await getAllPapers()}
         <p>Loading...</p>
     {:then data}    
+        {@const filtered_data = data.filter((d) => d.field == selectedField && d.year >= minYear)}
+        {@const uniq_venues = new Set(filtered_data.map(d=>d.venue))}
+        
         <div class="chart-container">
-            <Plot 
-                x={{tickRotate: 40, label: ""}}
-                y={{grid: true}}
-                height={300}
-                marginRight={20}
-                subtitle="{selectedVenue} Publications by Year"
-            >
-            <BarY 
-                data={data.filter((d) => d.venue == selectedVenue && d.year >= minYear)}
+            
+            <!-- Controls -->
+            <div class="controls">
+                <label>
+                Google Scholar Category:
+                {#await getFields()}
+                    <select disabled>
+                    <option>Loading venues...</option>
+                    </select>
+                {:then fields}
+                    <Select bind:value={selectedField} options={fields}/>
+                {:catch error}
+                    <select disabled>
+                    <option>Error loading venues</option>
+                    </select>
+                {/await}
+                </label>
+                
+                <label>
+                MinYear: {minYear}
+                <Slider bind:value={minYear}/>
+                </label>
+            </div>
+
+            <div class="chart2-container">
+
+                <Plot 
+                x={{tickRotate: 40, label: '', tickSpacing: 100}}
+                y={{grid: true, axis: 'right' }}
+                fy={{axis: false }}
+                frame
+                height={800}
+                maxWidth="400px"
+                marginRight={40}
+                marginLeft={25}
+                >
+                <BarY 
+                data={filtered_data}
                 x="year"
                 y="count"
+                fy="venue"
                 fillOpacity=0.1
+                font-size=13
                 stroke="black"
-            />
-            {#snippet overlay()}
-                <HTMLTooltip
-                    data={data.filter((d) => d.venue == selectedVenue && d.year >= minYear)}
-                    x="year"
-                    y="count">
-                    {#snippet children({ datum })}
-                        <div>
-                            <div>{datum.year}: {datum.count}</div>
-                        </div>
-                    {/snippet}
-                </HTMLTooltip>
-            {/snippet}
+                />
+                <Text 
+                data={filtered_data}
+                text={(d) => d.venue.length > 50 ? d.venue.slice(0,50)+'...' : d.venue}
+                fy="venue"
+                frameAnchor="top-left"
+                dx={5}
+                dy={5}
+                fontSize={12}
+                
+                fontFamily='sans-serif'
+                />
             </Plot>
+            </div>
+            <p style="font-size: 0.8rem; display: flex; justify-content: center; align-items: center;">p.s. {Array.from(uniq_venues).length} / 20 venues are showing up with this approach.</p>
         </div>
     {/await}
-
-        <!-- Controls -->
-    <div class="controls">
-        <label>
-        Venue:
-        {#await getVenues()}
-            <select disabled>
-            <option>Loading venues...</option>
-            </select>
-        {:then venues}
-            <Select bind:value={selectedVenue} options={venues}/>
-        {:catch error}
-            <select disabled>
-            <option>Error loading venues</option>
-            </select>
-        {/await}
-        </label>
-        
-        <label>
-        From Year: {minYear}
-        <Slider bind:value={minYear}/>
-        </label>
-    </div>
-
-    <p>(We are still unconvinced about the usefulness of looking at the data venue by venue. We might facet by category, putting all barcharts within that category in a grid.)</p>
     
     <InsightBox type="warning">
         <strong>TODO:</strong> Add bullet bars to show the extent to which available papers are parsed or not.
     </InsightBox>
+
+    <p>What we find is that the coverage of papers across venues is variable, but it is partly just a reflection of different publishing patterns; of course a review journal such as <em>Chemical Society Reviews</em> might publish fewer articles than something like <em>Molecules</em>. There are sometimes gaps that are suspicious, like with <em>Physical Review Letters</em>. But after checking, this is like that on their platform too, so who knows what happened those years ¯\_(ツ)_/¯. Same for a couple of others.</p>
+
+    <p>While double-checking the paper count by year on the OpenAlex platform (e.g. Energy Research & Social Science), it seems that Semantic Scholar is getting the venues wrong quite often. It is not to say that the papers don't exist, it just seems that Semantic Scholar struggles with linking crawled papers with venues (OpenAlex is doing better on that end, but they don't do text).</p>
 
 </div>
 
@@ -212,7 +227,7 @@
     align-items: center;
     padding: 1rem;
     border-radius: 8px;
-    margin: 1rem 0;
+    margin: 0;
     flex-wrap: wrap;
     max-width: fit-content;
     margin-inline: auto;
@@ -232,10 +247,17 @@
  
   
   .chart-container {
-    width: 100%;
+    width: 60%;
     border-radius: 15px; 
     padding: 0.5rem 0.5rem 0.5rem 0.5rem;
     background-color: #e5e2e2;
+    transform: translateX(30%);  /* (60%/2) */
+  }
+  
+  .chart2-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 
   .content-wrapper {
@@ -280,6 +302,11 @@
         
         .text-content {
             order: 1;
+        }
+        .chart-container {
+            width: 100%;
+            padding: 0 1rem 0.5rem 0.5rem;
+            transform: translateX(0);  /* (60%/2) */
         }
     }
 </style>

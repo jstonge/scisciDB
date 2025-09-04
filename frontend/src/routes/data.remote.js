@@ -1,8 +1,8 @@
 // frontend/src/routes/data.remote.js
 import { prerender } from '$app/server';
 import { db } from "$lib/server/db/index.js"
-import { asc, gte, sum, eq, and, or, lte } from 'drizzle-orm'
-import { papers, fields } from '$lib/server/db/schema.js'
+import { asc, gte, sum, eq, and, or } from 'drizzle-orm'
+import { papers, fields, top_venue_google_scholar } from '$lib/server/db/schema.js'
 
 // Get all unique venues
 export const getVenues = prerender(async () => {
@@ -10,8 +10,24 @@ export const getVenues = prerender(async () => {
   return result.map(r => r.venue);
 });
 
+export const getFields = prerender(async () => {
+  const result = await db.selectDistinct({field: top_venue_google_scholar.field}).from(top_venue_google_scholar);
+  console.log(result)
+  return result.map(r => r.field);
+});
+
 export const getAllPapers = prerender(async () => {
-  return await db.select().from(papers).orderBy(asc(papers.year));
+  return await db
+    .select({
+        venue: papers.venue,
+        year: papers.year,
+        count: papers.count,
+        field: top_venue_google_scholar.field
+    })
+    .from(papers)
+    .where(gte(papers.year, 1980))
+    .leftJoin(top_venue_google_scholar, eq(papers.venue, top_venue_google_scholar.venue))
+    .orderBy(asc(papers.venue), asc(papers.year));
 });
 
 export const getFieldsStem = prerender(async () => {
@@ -20,7 +36,7 @@ export const getFieldsStem = prerender(async () => {
   .from(fields)
   .where(
     and(
-      gte(fields.year, 1970),
+      gte(fields.year, 1980),
       or(
         eq(fields.field, "Computer Science"),
         eq(fields.field, "Medicine"),
@@ -45,7 +61,7 @@ export const getFieldsSocSci = prerender(async () => {
         .from(fields)
         .where(
           and(
-            gte(fields.year, 1970),
+            gte(fields.year, 1980),
             or(
               eq(fields.field, "History"),
               eq(fields.field, "Linguistics"),
